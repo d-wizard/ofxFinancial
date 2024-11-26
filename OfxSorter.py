@@ -3,6 +3,7 @@ from datetime import datetime
 from ofxparse import OfxParser
 import codecs
 import pandas as pd
+import argparse
 
 ################################################################################
 
@@ -117,6 +118,15 @@ class OfxSorter(object):
 
 # Main start
 if __name__== "__main__":
-   ofx = OfxSorter("F:\Financial\docs\WF_Checking\Checking1_241125.qfx")
-   ofx.importOfx()
-   ofx.transactionsToExcel()
+   parser = argparse.ArgumentParser()
+   parser.add_argument("-p", "--path", help="File / Folder to process")
+   args = parser.parse_args()
+
+   try:
+      if os.path.isfile(args.path):
+         ofx = OfxSorter(args.path)
+         ofx.importOfx()
+         ofx.transactionsToExcel()
+   except:
+      print("Need to specify input file/folder")
+   
