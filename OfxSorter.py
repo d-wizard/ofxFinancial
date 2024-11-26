@@ -1,9 +1,12 @@
 import os
 from datetime import datetime
 from ofxparse import OfxParser
+from ofxparse import Transaction
 import codecs
 import pandas as pd
 import argparse
+import json
+import re
 
 ################################################################################
 
@@ -57,6 +60,23 @@ class OfxSorter(object):
 
    #############################################################################
 
+   def getTransactionVal(self, trans: Transaction, key: str):
+      try:
+         if key == "payee": return trans.payee
+         if key == "type": return trans.type
+         if key == "date": return trans.date
+         if key == "user_date": return trans.user_date
+         if key == "amount": return trans.amount
+         if key == "id": return trans.id
+         if key == "memo": return trans.memo
+         if key == "sic": return trans.sic
+         if key == "mcc": return trans.mcc
+         if key == "checknum": return trans.checknum
+      except:
+         return None
+
+   #############################################################################
+
    def printTransactions(self):
       payees = {}
       types = {}
@@ -100,22 +120,37 @@ class OfxSorter(object):
       statement = account.statement
       transNum = 0
       for transaction in statement.transactions:
-         transToDict(transDicts, "payee"     , transNum, transaction.payee     )
-         transToDict(transDicts, "type"      , transNum, transaction.type      )
-         transToDict(transDicts, "date"      , transNum, transaction.date      )
-         transToDict(transDicts, "user_date" , transNum, transaction.user_date )
-         transToDict(transDicts, "amount"    , transNum, transaction.amount    )
-         transToDict(transDicts, "id"        , transNum, transaction.id        )
-         transToDict(transDicts, "memo"      , transNum, transaction.memo      )
-         transToDict(transDicts, "sic"       , transNum, transaction.sic       )
-         transToDict(transDicts, "mcc"       , transNum, transaction.mcc       )
-         transToDict(transDicts, "checknum"  , transNum, transaction.checknum  )
+         for key in keys:
+            transToDict(transDicts, key, transNum, self.getTransactionVal(transaction, key))
          transNum += 1
 
-      # Save as Excel Spreadsheet vai Pandas
+      # Save as Excel Spreadsheet via Pandas
       transData = pd.DataFrame(transDicts)
       transExcelPath = os.path.splitext(self.pathToOfxFile)[0] + "_" + getUniqueFileNameTimeStr() + ".xlsx"
       transData.to_excel(transExcelPath)
+
+   #############################################################################
+
+   def applyRulesToTransactions(self, rulesList):
+      account = self.ofxObj.account
+      statement = account.statement
+      for transaction in statement.transactions:
+         match = False
+         for rule in rulesList:
+            checks = rule[0]
+            action = rule[1]
+            match = True # start True, must pass each check
+            for check in checks:
+               transKey, transMatchStr = list(check.items())[0]
+               transVal = self.getTransactionVal(transaction, transKey)
+               if not re.match(transMatchStr, transVal):
+                  match = False
+            if match:
+               break
+         if (match and action == 'ask') or not match:
+            print(f"Trans - type: {transaction.type} | payee: {transaction.payee} | date: {transaction.date} | amount: {transaction.amount}")
+
+
 
 ################################################################################
 
