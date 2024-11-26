@@ -1,6 +1,13 @@
 import os
+from datetime import datetime
 from ofxparse import OfxParser
 import codecs
+import pandas as pd
+
+################################################################################
+
+def getUniqueFileNameTimeStr():
+   return datetime.now().strftime("%y%m%d%H%M%S")
 
 ################################################################################
 
@@ -68,10 +75,48 @@ class OfxSorter(object):
       print(types)
       print(payees)
 
+   #############################################################################
+
+   def transactionsToExcel(self):
+      # Function for adding to the dictionary.
+      def transToDict(theDict, num: int, val: str):
+         try:
+            theDict[num] = val
+         except:
+            pass
+      
+      # Initialize the dictionary
+      keys = ["payee", "type", "date", "user_date", "amount", "id", "memo", "sic", "mcc", "checknum"]
+      transDicts = {}
+      for key in keys:
+         transDicts[key] = {}
+
+      # Fill in the dictionary
+      account = self.ofxObj.account
+      statement = account.statement
+      transNum = 0
+      for transaction in statement.transactions:
+         transToDict(transDicts["payee"]     , transNum, transaction.payee     )
+         transToDict(transDicts["type"]      , transNum, transaction.type      )
+         transToDict(transDicts["date"]      , transNum, transaction.date      )
+         transToDict(transDicts["user_date"] , transNum, transaction.user_date )
+         transToDict(transDicts["amount"]    , transNum, transaction.amount    )
+         transToDict(transDicts["id"]        , transNum, transaction.id        )
+         transToDict(transDicts["memo"]      , transNum, transaction.memo      )
+         transToDict(transDicts["sic"]       , transNum, transaction.sic       )
+         transToDict(transDicts["mcc"]       , transNum, transaction.mcc       )
+         transToDict(transDicts["checknum"]  , transNum, transaction.checknum  )
+         transNum += 1
+
+      # Save as Excel Spreadsheet vai Pandas
+      transData = pd.DataFrame(transDicts)
+      transExcelPath = os.path.splitext(self.pathToOfxFile)[0] + "_" + getUniqueFileNameTimeStr() + ".xlsx"
+      transData.to_excel(transExcelPath)
+
 ################################################################################
 
 # Main start
 if __name__== "__main__":
    ofx = OfxSorter("F:\Financial\docs\WF_Checking\Checking1_241125.qfx")
    ofx.importOfx()
-   ofx.printTransactions()
+   ofx.transactionsToExcel()
