@@ -14,10 +14,49 @@ def getUniqueFileNameTimeStr():
    return datetime.now().strftime("%y%m%d%H%M%S")
 
 ################################################################################
+################################################################################
+################################################################################
+
+class AllTransactions(object):
+   def __init__(self, pathToTransJson: str):
+      self.pathToTransJson = pathToTransJson
+      try:
+         with open(pathToTransJson, 'r') as f:
+            self.transList = json.load(f)
+      except:
+         self.transList = []
+
+   def isInList(self, transToCheck):
+      alreadyInList = False
+      for trans in self.transList:
+         if trans["raw"] == transToCheck:
+            alreadyInList = True
+            break
+      return alreadyInList
+
+   def addTransaction(self, transToAdd, docEntry, action: str):
+      if not self.isInList(transToAdd):
+         toAdd = {}
+         toAdd["action"] = action
+         toAdd["type"] = docEntry["type"]
+         toAdd["name"] = docEntry["name"]
+         toAdd["raw"] = transToAdd
+         self.transList.append(toAdd)
+
+   def saveTransactions(self):
+      with open(self.pathToTransJson, 'w') as f:
+         json.dump(self.transList, f)
+
+################################################################################
+################################################################################
+################################################################################
 
 class OfxSorter(object):
-   def __init__(self, pathToOfxFile: str):
+   def __init__(self, pathToOfxFile: str, storedTrans: AllTransactions, docsEntry):
       self.pathToOfxFile = pathToOfxFile
+      self.transKeys = ["payee", "type", "date", "user_date", "amount", "id", "memo", "sic", "mcc", "checknum"]
+      self.storedTrans = storedTrans
+      self.docsEntry = docsEntry
 
    #############################################################################
 
@@ -77,30 +116,17 @@ class OfxSorter(object):
 
    #############################################################################
 
-   def printTransactions(self):
-      payees = {}
-      types = {}
-            
-      account = self.ofxObj.account
-      statement = account.statement
-      for transaction in statement.transactions:
-         try:
-            payees[transaction.payee] += 1
-         except:
-            payees[transaction.payee] = 1
-         try:
-            types[transaction.type] += 1
-         except:
-            types[transaction.type] = 1
-
-      print(types)
-      print(payees)
-
+   def getTransactionDict(self, trans: Transaction):
+      retVal = {}
+      for key in self.transKeys:
+         retVal[key] = str(self.getTransactionVal(trans, key))
+      return retVal
+   
    #############################################################################
 
    def transactionsToExcel(self):
       # Function for adding to the dictionary.
-      def transToDict(theDict, dictKey: str, num: int, val: str):
+      def transToPandaDict(theDict, dictKey: str, num: int, val: str):
          try:
             if dictKey == "amount":
                theDict[dictKey][num] = float(val)
@@ -110,9 +136,8 @@ class OfxSorter(object):
             pass
       
       # Initialize the dictionary
-      keys = ["payee", "type", "date", "user_date", "amount", "id", "memo", "sic", "mcc", "checknum"]
       transDicts = {}
-      for key in keys:
+      for key in self.transKeys:
          transDicts[key] = {}
 
       # Fill in the dictionary
@@ -120,8 +145,8 @@ class OfxSorter(object):
       statement = account.statement
       transNum = 0
       for transaction in statement.transactions:
-         for key in keys:
-            transToDict(transDicts, key, transNum, self.getTransactionVal(transaction, key))
+         for key in self.transKeys:
+            transToPandaDict(transDicts, key, transNum, self.getTransactionVal(transaction, key))
          transNum += 1
 
       # Save as Excel Spreadsheet via Pandas
@@ -131,24 +156,32 @@ class OfxSorter(object):
 
    #############################################################################
 
-   def applyRulesToTransactions(self, rulesList):
+   def applyRulesToTransactions(self):
       account = self.ofxObj.account
       statement = account.statement
+      rulesList = self.docsEntry["rules"]
       for transaction in statement.transactions:
-         match = False
-         for rule in rulesList:
-            checks = rule[0]
-            action = rule[1]
-            match = True # start True, must pass each check
-            for check in checks:
-               transKey, transMatchStr = list(check.items())[0]
-               transVal = self.getTransactionVal(transaction, transKey)
-               if not re.match(transMatchStr, transVal):
-                  match = False
-            if match:
-               break
-         if (match and action == 'ask') or not match:
-            print(f"Trans - type: {transaction.type} | payee: {transaction.payee} | date: {transaction.date} | amount: {transaction.amount}")
+         transactionDict = self.getTransactionDict(transaction)
+         if not self.storedTrans.isInList(transactionDict):
+            match = False
+            for rule in rulesList:
+               checks = rule[0]
+               action = rule[1]
+               match = True # start True, must pass each check
+               for check in checks:
+                  transKey, transMatchStr = list(check.items())[0]
+                  transVal = transactionDict[transKey]
+                  if not re.match(transMatchStr, transVal):
+                     match = False
+               if match:
+                  break
+            if (match and action == 'ask') or not match:
+               print(f"Trans - type: {transaction.type} | payee: {transaction.payee} | date: {transaction.date} | amount: {transaction.amount}") # TODO prompt user.
+            else:
+               self.storedTrans.addTransaction(transactionDict, self.docsEntry, action)
+         else:
+            # print(f"Already In List - type: {transaction.type} | payee: {transaction.payee} | date: {transaction.date} | amount: {transaction.amount}")
+            pass
 
 
 
@@ -157,14 +190,23 @@ class OfxSorter(object):
 # Main start
 if __name__== "__main__":
    parser = argparse.ArgumentParser()
-   parser.add_argument("-p", "--path", help="File / Folder to process")
+   parser.add_argument("-d", "--docs", help="Json that describes the documents to read.")
+   parser.add_argument("-t", "--trans", help="Json contains all the previous parsed transactions.")
    args = parser.parse_args()
 
-   try:
-      if os.path.isfile(args.path):
-         ofx = OfxSorter(args.path)
-         ofx.importOfx()
-         ofx.transactionsToExcel()
-   except:
-      print("Need to specify input file/folder")
+   allTrans = AllTransactions(args.trans)
+
+   with open(args.docs, 'r') as f:
+      docsEntries = json.load(f)
+      for docsEntry in docsEntries:
+         fullDir = os.path.join(os.path.dirname(args.docs), docsEntry["dir"])
+         for fileName in os.listdir(fullDir):
+            fileName = os.path.join(fullDir, fileName)
+            if os.path.isfile(fileName):
+               ext = os.path.splitext(fileName)[1].lower()
+               if ext == '.ofx' or ext == '.qfx' or ext == '.qbo':
+                  ofx = OfxSorter(fileName, allTrans, docsEntry)
+                  ofx.importOfx()
+                  ofx.applyRulesToTransactions()
    
+   allTrans.saveTransactions()
