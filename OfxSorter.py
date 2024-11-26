@@ -25,6 +25,7 @@ class AllTransactions(object):
             self.transList = json.load(f)
       except:
          self.transList = []
+      self.transactionsAdded = 0
 
    def isInList(self, transToCheck):
       alreadyInList = False
@@ -42,8 +43,10 @@ class AllTransactions(object):
          toAdd["name"] = docEntry["name"]
          toAdd["raw"] = transToAdd
          self.transList.append(toAdd)
+         self.transactionsAdded += 1
 
    def saveTransactions(self):
+      print(f"Saving Transactions - {self.transactionsAdded} transaction(s) added")
       with open(self.pathToTransJson, 'w') as f:
          json.dump(self.transList, f)
 
@@ -163,26 +166,36 @@ class OfxSorter(object):
       for transaction in statement.transactions:
          transactionDict = self.getTransactionDict(transaction)
          if not self.storedTrans.isInList(transactionDict):
-            match = False
+            ruleMatch = False
             for rule in rulesList:
                checks = rule[0]
                action = rule[1]
-               match = True # start True, must pass each check
+               ruleMatch = True # start True, must pass each check
                for check in checks:
                   transKey, transMatchStr = list(check.items())[0]
                   transVal = transactionDict[transKey]
                   if not re.match(transMatchStr, transVal):
-                     match = False
-               if match:
+                     ruleMatch = False
+               if ruleMatch:
                   break
-            if (match and action == 'ask') or not match:
-               print(f"Trans - type: {transaction.type} | payee: {transaction.payee} | date: {transaction.date} | amount: {transaction.amount}") # TODO prompt user.
-            else:
-               self.storedTrans.addTransaction(transactionDict, self.docsEntry, action)
+            if (ruleMatch and action == 'ask') or not ruleMatch:
+               action = self.getAction(transaction)
+            self.storedTrans.addTransaction(transactionDict, self.docsEntry, action)
          else:
             # print(f"Already In List - type: {transaction.type} | payee: {transaction.payee} | date: {transaction.date} | amount: {transaction.amount}")
             pass
 
+   #############################################################################
+
+   def getAction(self, transaction: Transaction):
+      action = None
+      while action == None:
+         print(f"Need to label transaction - type: {transaction.type} | payee: {transaction.payee} | date: {transaction.date} | amount: {transaction.amount}.")
+         val = input("Select 'm' for moving money, 'i' for income, 'e' for expense > ")
+         if val == 'm': action = 'move'
+         elif val == 'i': action = 'income'
+         elif val == 'e': action = 'expense'
+         else: print("Invalid selection. Try again.")
 
 
 ################################################################################
