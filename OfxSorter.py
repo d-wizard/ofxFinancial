@@ -80,9 +80,12 @@ class OfxSorter(object):
 
    def transactionsToExcel(self):
       # Function for adding to the dictionary.
-      def transToDict(theDict, num: int, val: str):
+      def transToDict(theDict, dictKey: str, num: int, val: str):
          try:
-            theDict[num] = val
+            if dictKey == "amount":
+               theDict[dictKey][num] = float(val)
+            else:
+               theDict[dictKey][num] = val
          except:
             pass
       
@@ -97,16 +100,16 @@ class OfxSorter(object):
       statement = account.statement
       transNum = 0
       for transaction in statement.transactions:
-         transToDict(transDicts["payee"]     , transNum, transaction.payee     )
-         transToDict(transDicts["type"]      , transNum, transaction.type      )
-         transToDict(transDicts["date"]      , transNum, transaction.date      )
-         transToDict(transDicts["user_date"] , transNum, transaction.user_date )
-         transToDict(transDicts["amount"]    , transNum, transaction.amount    )
-         transToDict(transDicts["id"]        , transNum, transaction.id        )
-         transToDict(transDicts["memo"]      , transNum, transaction.memo      )
-         transToDict(transDicts["sic"]       , transNum, transaction.sic       )
-         transToDict(transDicts["mcc"]       , transNum, transaction.mcc       )
-         transToDict(transDicts["checknum"]  , transNum, transaction.checknum  )
+         transToDict(transDicts, "payee"     , transNum, transaction.payee     )
+         transToDict(transDicts, "type"      , transNum, transaction.type      )
+         transToDict(transDicts, "date"      , transNum, transaction.date      )
+         transToDict(transDicts, "user_date" , transNum, transaction.user_date )
+         transToDict(transDicts, "amount"    , transNum, transaction.amount    )
+         transToDict(transDicts, "id"        , transNum, transaction.id        )
+         transToDict(transDicts, "memo"      , transNum, transaction.memo      )
+         transToDict(transDicts, "sic"       , transNum, transaction.sic       )
+         transToDict(transDicts, "mcc"       , transNum, transaction.mcc       )
+         transToDict(transDicts, "checknum"  , transNum, transaction.checknum  )
          transNum += 1
 
       # Save as Excel Spreadsheet vai Pandas
