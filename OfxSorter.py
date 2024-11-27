@@ -32,6 +32,8 @@ class AllTransactions(object):
       self.metaDataKeys = ["action", "type", "type", "name"]
       self.validActions = ['income', 'expense', 'move']
 
+   #############################################################################
+
    def isInList(self, transToCheck):
       alreadyInList = False
       for trans in self.transList:
@@ -39,6 +41,8 @@ class AllTransactions(object):
             alreadyInList = True
             break
       return alreadyInList
+
+   #############################################################################
 
    def addTransaction(self, transToAdd, docEntry, action: str):
       if not self.isInList(transToAdd):
@@ -50,6 +54,8 @@ class AllTransactions(object):
          self.transList.append(toAdd)
          self.transactionsAdded += 1
 
+   #############################################################################
+
    def modTransaction(self, transToMod, docEntry, action: str):
       for trans in self.transList:
          if trans["raw"] == transToMod:
@@ -58,6 +64,8 @@ class AllTransactions(object):
             trans["name"] = docEntry["name"]
             self.transactionsModified += 1
 
+   #############################################################################
+
    def isMetaDataDifferent(self, transToCheck, docEntry, action: str):
       for trans in self.transList:
          if trans["raw"] == transToCheck:
@@ -65,6 +73,8 @@ class AllTransactions(object):
                return True
       return False
             
+   #############################################################################
+
    def isMetaDataActionValid(self, transToCheck):
       for trans in self.transList:
          if trans["raw"] == transToCheck:
@@ -72,11 +82,19 @@ class AllTransactions(object):
                return False
       return True
    
+   #############################################################################
+
    def saveTransactions(self):
       print(f"Saving Transactions: {self.transactionsAdded} Transaction(s) added, {self.transactionsModified} Transaction(s) modified")
       if self.transactionsAdded > 0 or self.transactionsModified > 0:
          with open(self.pathToTransJson, 'w') as f:
             json.dump(self.transList, f)
+         
+         altPath = os.path.splitext(self.pathToTransJson)[0] + "_" + getUniqueFileNameTimeStr() + ".json"
+         with open(altPath, 'w') as f:
+            json.dump(self.transList, f)
+
+   #############################################################################
 
    def makeTransactionSpreadsheet(self, savePath: str):
       # Function for adding to the dictionary.
@@ -105,6 +123,63 @@ class AllTransactions(object):
       # Save as Excel Spreadsheet via Pandas
       transData = pd.DataFrame(transDicts)
       transData.to_excel(savePath)
+
+   #############################################################################
+
+   def getExpenseStats(self):
+      stats = {'oldest': None, 'newest': None, 'count': 0}
+      for trans in self.transList:
+         if trans['action'] == 'expense':
+            date = datetime.strptime(trans['raw']['date'], '%Y-%m-%d %H:%M:%S')
+            if stats['oldest'] == None: stats['oldest'] = date
+            elif date < stats['oldest']: stats['oldest'] = date
+            if stats['newest'] == None: stats['newest'] = date
+            elif date > stats['newest']: stats['newest'] = date
+            stats['count'] += 1
+      return stats
+
+   #############################################################################
+
+   def getExpenseMonthlyBreakdown(self):
+      def incrMonth(month, year):
+         month += 1
+         if month > 12:
+            month = 1
+            year += 1
+         return month,year
+      stats = self.getExpenseStats()
+
+      # Set the month boundaries
+      curMon = stats['oldest'].month
+      curYear = stats['oldest'].year
+      nextMon, nextYear = incrMonth(curMon, curYear)
+      cur = datetime(curYear, curMon, 1)
+      next = datetime(nextYear, nextMon, 1)
+
+      retVal = {}
+      expenseParseCount = 0
+      while cur < stats['newest']:
+         key = cur.strftime("%Y-%m")
+         retVal[key] = 0
+         for trans in self.transList:
+            if trans['action'] == 'expense':
+               date = datetime.strptime(trans['raw']['date'], '%Y-%m-%d %H:%M:%S')
+               if date >= cur and date < next:
+                  retVal[key] += float(trans['raw']['amount'])
+                  expenseParseCount += 1
+         # Update the month boundaries
+         curMon = nextMon
+         curYear = nextYear
+         nextMon, nextYear = incrMonth(curMon, curYear)
+         cur = datetime(curYear, curMon, 1)
+         next = datetime(nextYear, nextMon, 1)
+      
+      if expenseParseCount != stats['count']:
+         print('failure')
+      
+      return retVal
+
+
 
 
 ################################################################################
@@ -279,21 +354,23 @@ if __name__== "__main__":
    args = parser.parse_args()
 
    allTrans = AllTransactions(args.trans)
+   print(allTrans.getExpenseMonthlyBreakdown())
 
-   with open(args.docs, 'r') as f:
-      docsEntries = json.load(f)
-      for docsEntry in docsEntries:
-         fullDir = os.path.join(os.path.dirname(args.docs), docsEntry["dir"])
-         for fileName in os.listdir(fullDir):
-            fileName = os.path.join(fullDir, fileName)
-            if os.path.isfile(fileName):
-               ext = os.path.splitext(fileName)[1].lower()
-               if ext == '.ofx' or ext == '.qfx' or ext == '.qbo':
-                  ofx = OfxSorter(fileName, allTrans, docsEntry)
-                  ofx.importOfx()
-                  ofx.applyRulesToTransactions()
+   if args.docs != None:
+      with open(args.docs, 'r') as f:
+         docsEntries = json.load(f)
+         for docsEntry in docsEntries:
+            fullDir = os.path.join(os.path.dirname(args.docs), docsEntry["dir"])
+            for fileName in os.listdir(fullDir):
+               fileName = os.path.join(fullDir, fileName)
+               if os.path.isfile(fileName):
+                  ext = os.path.splitext(fileName)[1].lower()
+                  if ext == '.ofx' or ext == '.qfx' or ext == '.qbo':
+                     ofx = OfxSorter(fileName, allTrans, docsEntry)
+                     ofx.importOfx()
+                     ofx.applyRulesToTransactions()
    
-   allTrans.saveTransactions()
+      allTrans.saveTransactions()
 
    if args.excel != None:
       # If just a directory is specified generated the file name.
