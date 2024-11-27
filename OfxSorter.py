@@ -26,6 +26,7 @@ class AllTransactions(object):
       except:
          self.transList = []
       self.transactionsAdded = 0
+      self.transactionsModified = 0
 
    def isInList(self, transToCheck):
       alreadyInList = False
@@ -45,8 +46,22 @@ class AllTransactions(object):
          self.transList.append(toAdd)
          self.transactionsAdded += 1
 
+   def modTransaction(self, transToMod, docEntry, action: str):
+      for trans in self.transList:
+         if trans["raw"] == transToMod:
+            trans["action"] = action
+            trans["type"] = docEntry["type"]
+            trans["name"] = docEntry["name"]
+            self.transactionsModified += 1
+
+   def isMetaDataDifferent(self, transToCheck, docEntry, action: str):
+      for trans in self.transList:
+         if trans["raw"] == transToCheck:
+            if trans["action"] != action or trans["type"] != docEntry["type"] or trans["name"] != docEntry["name"]:
+               return True
+            
    def saveTransactions(self):
-      print(f"Saving Transactions - {self.transactionsAdded} transaction(s) added")
+      print(f"Saving Transactions: {self.transactionsAdded} Transaction(s) added, {self.transactionsModified} Transaction(s) modified")
       with open(self.pathToTransJson, 'w') as f:
          json.dump(self.transList, f)
 
@@ -165,24 +180,30 @@ class OfxSorter(object):
       rulesList = self.docsEntry["rules"]
       for transaction in statement.transactions:
          transactionDict = self.getTransactionDict(transaction)
-         if not self.storedTrans.isInList(transactionDict):
-            ruleMatch = False
-            for rule in rulesList:
-               checks = rule[0]
-               action = rule[1]
-               ruleMatch = True # start True, must pass each check
-               for check in checks:
-                  transKey, transMatchStr = list(check.items())[0]
-                  transVal = transactionDict[transKey]
-                  if not re.match(transMatchStr, transVal):
-                     ruleMatch = False
-               if ruleMatch:
-                  break
+
+         # Check transaction against all the rules for categorizing them.
+         ruleMatch = False
+         for rule in rulesList:
+            checks = rule[0]
+            action = rule[1]
+            ruleMatch = True # start True, must pass each check
+            for check in checks:
+               transKey, transMatchStr = list(check.items())[0]
+               transVal = transactionDict[transKey]
+               if not re.match(transMatchStr, transVal):
+                  ruleMatch = False
+            if ruleMatch:
+               break
+         
+         alreadyCategorized = self.storedTrans.isInList(transactionDict)
+         if not alreadyCategorized:
             if (ruleMatch and action == 'ask') or not ruleMatch:
                action = self.getAction(transaction)
             self.storedTrans.addTransaction(transactionDict, self.docsEntry, action)
-         else:
-            # print(f"Already In List - type: {transaction.type} | payee: {transaction.payee} | date: {transaction.date} | amount: {transaction.amount}")
+         elif ruleMatch and action != 'ask':
+            # if self.storedTrans.isMetaDataDifferent(transactionDict, self.docsEntry, action):
+            #    print(f"Already In List - type: {transaction.type} | payee: {transaction.payee} | date: {transaction.date} | amount: {transaction.amount}")
+            #    self.storedTrans.modTransaction(transactionDict, self.docsEntry, action)
             pass
 
    #############################################################################
