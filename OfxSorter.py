@@ -13,6 +13,8 @@ import re
 def getUniqueFileNameTimeStr():
    return datetime.now().strftime("%y%m%d%H%M%S")
 
+TRANSACTION_KEYS = ["payee", "type", "date", "user_date", "amount", "id", "memo", "sic", "mcc", "checknum"]
+
 ################################################################################
 ################################################################################
 ################################################################################
@@ -27,6 +29,7 @@ class AllTransactions(object):
          self.transList = []
       self.transactionsAdded = 0
       self.transactionsModified = 0
+      self.metaDataKeys = ["action", "type", "type", "name"]
 
    def isInList(self, transToCheck):
       alreadyInList = False
@@ -65,6 +68,36 @@ class AllTransactions(object):
       with open(self.pathToTransJson, 'w') as f:
          json.dump(self.transList, f)
 
+   def makeTransactionSpreadsheet(self):
+      # Function for adding to the dictionary.
+      def transToPandaDict(theDict, dictKey: str, num: int, val: str):
+         if dictKey not in theDict.keys():
+            theDict[dictKey] = {}
+
+         try:
+            if dictKey == "amount":
+               theDict[dictKey][num] = float(val)
+            else:
+               theDict[dictKey][num] = val
+         except:
+            pass
+      
+      # Fill in the dictionary
+      transDicts = {}
+      transNum = 0
+      for trans in self.transList:
+         for key in self.metaDataKeys:
+            transToPandaDict(transDicts, 'meta.'+key, transNum, trans[key])
+         for key in TRANSACTION_KEYS:
+            transToPandaDict(transDicts, key, transNum, trans["raw"][key])
+         transNum += 1
+
+      # Save as Excel Spreadsheet via Pandas
+      transData = pd.DataFrame(transDicts)
+      transExcelPath = getUniqueFileNameTimeStr() + ".xlsx"
+      transData.to_excel(transExcelPath)
+
+
 ################################################################################
 ################################################################################
 ################################################################################
@@ -72,7 +105,6 @@ class AllTransactions(object):
 class OfxSorter(object):
    def __init__(self, pathToOfxFile: str, storedTrans: AllTransactions, docsEntry):
       self.pathToOfxFile = pathToOfxFile
-      self.transKeys = ["payee", "type", "date", "user_date", "amount", "id", "memo", "sic", "mcc", "checknum"]
       self.storedTrans = storedTrans
       self.docsEntry = docsEntry
 
@@ -136,7 +168,7 @@ class OfxSorter(object):
 
    def getTransactionDict(self, trans: Transaction):
       retVal = {}
-      for key in self.transKeys:
+      for key in TRANSACTION_KEYS:
          retVal[key] = str(self.getTransactionVal(trans, key))
       return retVal
    
@@ -155,7 +187,7 @@ class OfxSorter(object):
       
       # Initialize the dictionary
       transDicts = {}
-      for key in self.transKeys:
+      for key in TRANSACTION_KEYS:
          transDicts[key] = {}
 
       # Fill in the dictionary
@@ -163,7 +195,7 @@ class OfxSorter(object):
       statement = account.statement
       transNum = 0
       for transaction in statement.transactions:
-         for key in self.transKeys:
+         for key in TRANSACTION_KEYS:
             transToPandaDict(transDicts, key, transNum, self.getTransactionVal(transaction, key))
          transNum += 1
 
@@ -244,3 +276,5 @@ if __name__== "__main__":
                   ofx.applyRulesToTransactions()
    
    allTrans.saveTransactions()
+   allTrans.makeTransactionSpreadsheet()
+
