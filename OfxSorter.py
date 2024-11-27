@@ -30,6 +30,7 @@ class AllTransactions(object):
       self.transactionsAdded = 0
       self.transactionsModified = 0
       self.metaDataKeys = ["action", "type", "type", "name"]
+      self.validActions = ['income', 'expense', 'move']
 
    def isInList(self, transToCheck):
       alreadyInList = False
@@ -62,11 +63,20 @@ class AllTransactions(object):
          if trans["raw"] == transToCheck:
             if trans["action"] != action or trans["type"] != docEntry["type"] or trans["name"] != docEntry["name"]:
                return True
+      return False
             
+   def isMetaDataActionValid(self, transToCheck):
+      for trans in self.transList:
+         if trans["raw"] == transToCheck:
+            if trans["action"] not in self.validActions:
+               return False
+      return True
+   
    def saveTransactions(self):
       print(f"Saving Transactions: {self.transactionsAdded} Transaction(s) added, {self.transactionsModified} Transaction(s) modified")
-      with open(self.pathToTransJson, 'w') as f:
-         json.dump(self.transList, f)
+      if self.transactionsAdded > 0 or self.transactionsModified > 0:
+         with open(self.pathToTransJson, 'w') as f:
+            json.dump(self.transList, f)
 
    def makeTransactionSpreadsheet(self):
       # Function for adding to the dictionary.
@@ -230,25 +240,33 @@ class OfxSorter(object):
          alreadyCategorized = self.storedTrans.isInList(transactionDict)
          if not alreadyCategorized:
             if (ruleMatch and action == 'ask') or not ruleMatch:
-               action = self.getAction(transaction)
+               action = self.getAction(transaction, self.docsEntry["name"])
             self.storedTrans.addTransaction(transactionDict, self.docsEntry, action)
-         elif ruleMatch and action != 'ask':
-            if self.storedTrans.isMetaDataDifferent(transactionDict, self.docsEntry, action):
-               print(f"Meta Data Doesn't match - type: {transaction.type} | payee: {transaction.payee} | date: {transaction.date} | amount: {transaction.amount}")
+         else:
+            # Transaction has been categorized. Check for changes.
+            if ruleMatch and action != 'ask' and self.storedTrans.isMetaDataDifferent(transactionDict, self.docsEntry, action):
+               print(f"Meta Data Doesn't match {self.docsEntry["name"]} - type: {transaction.type} | payee: {transaction.payee} | date: {transaction.date} | amount: {transaction.amount}")
+               # self.storedTrans.modTransaction(transactionDict, self.docsEntry, action)
+            
+            if not self.storedTrans.isMetaDataActionValid(transactionDict):
+               print(f"Bad Action {self.docsEntry["name"]} - type: {transaction.type} | payee: {transaction.payee} | date: {transaction.date} | amount: {transaction.amount}")
+               # if (ruleMatch and action == 'ask') or not ruleMatch:
+               #    action = self.getAction(transaction, self.docsEntry["name"])
                # self.storedTrans.modTransaction(transactionDict, self.docsEntry, action)
             pass
 
    #############################################################################
 
-   def getAction(self, transaction: Transaction):
+   def getAction(self, transaction: Transaction, name: str):
       action = None
       while action == None:
-         print(f"Need to label transaction - type: {transaction.type} | payee: {transaction.payee} | date: {transaction.date} | amount: {transaction.amount}.")
+         print(f"Need to label transaction {name} - type: {transaction.type} | payee: {transaction.payee} | date: {transaction.date} | amount: {transaction.amount}.")
          val = input("Select 'm' for moving money, 'i' for income, 'e' for expense > ")
          if val == 'm': action = 'move'
          elif val == 'i': action = 'income'
          elif val == 'e': action = 'expense'
          else: print("Invalid selection. Try again.")
+      return action
 
 
 ################################################################################
@@ -276,5 +294,5 @@ if __name__== "__main__":
                   ofx.applyRulesToTransactions()
    
    allTrans.saveTransactions()
-   allTrans.makeTransactionSpreadsheet()
+   # allTrans.makeTransactionSpreadsheet()
 
