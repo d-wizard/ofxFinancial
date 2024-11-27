@@ -78,7 +78,7 @@ class AllTransactions(object):
          with open(self.pathToTransJson, 'w') as f:
             json.dump(self.transList, f)
 
-   def makeTransactionSpreadsheet(self):
+   def makeTransactionSpreadsheet(self, savePath: str):
       # Function for adding to the dictionary.
       def transToPandaDict(theDict, dictKey: str, num: int, val: str):
          if dictKey not in theDict.keys():
@@ -104,8 +104,7 @@ class AllTransactions(object):
 
       # Save as Excel Spreadsheet via Pandas
       transData = pd.DataFrame(transDicts)
-      transExcelPath = getUniqueFileNameTimeStr() + ".xlsx"
-      transData.to_excel(transExcelPath)
+      transData.to_excel(savePath)
 
 
 ################################################################################
@@ -276,6 +275,7 @@ if __name__== "__main__":
    parser = argparse.ArgumentParser()
    parser.add_argument("-d", "--docs", help="Json that describes the documents to read.")
    parser.add_argument("-t", "--trans", help="Json contains all the previous parsed transactions.")
+   parser.add_argument("-x", "--excel", help="Path to save spreadsheet to.")
    args = parser.parse_args()
 
    allTrans = AllTransactions(args.trans)
@@ -294,5 +294,9 @@ if __name__== "__main__":
                   ofx.applyRulesToTransactions()
    
    allTrans.saveTransactions()
-   # allTrans.makeTransactionSpreadsheet()
+
+   if args.excel != None:
+      # If just a directory is specified generated the file name.
+      path = args.excel if not os.path.isdir(args.excel) else os.path.join(args.excel, "transactions_" + getUniqueFileNameTimeStr() + ".xlsx")
+      allTrans.makeTransactionSpreadsheet(path)
 
