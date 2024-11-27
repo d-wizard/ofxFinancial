@@ -201,9 +201,9 @@ class OfxSorter(object):
                action = self.getAction(transaction)
             self.storedTrans.addTransaction(transactionDict, self.docsEntry, action)
          elif ruleMatch and action != 'ask':
-            # if self.storedTrans.isMetaDataDifferent(transactionDict, self.docsEntry, action):
-            #    print(f"Already In List - type: {transaction.type} | payee: {transaction.payee} | date: {transaction.date} | amount: {transaction.amount}")
-            #    self.storedTrans.modTransaction(transactionDict, self.docsEntry, action)
+            if self.storedTrans.isMetaDataDifferent(transactionDict, self.docsEntry, action):
+               print(f"Meta Data Doesn't match - type: {transaction.type} | payee: {transaction.payee} | date: {transaction.date} | amount: {transaction.amount}")
+               # self.storedTrans.modTransaction(transactionDict, self.docsEntry, action)
             pass
 
    #############################################################################
