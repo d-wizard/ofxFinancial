@@ -126,10 +126,10 @@ class AllTransactions(object):
 
    #############################################################################
 
-   def getExpenseStats(self):
+   def getActionStats(self, action: str):
       stats = {'oldest': None, 'newest': None, 'count': 0}
       for trans in self.transList:
-         if trans['action'] == 'expense':
+         if trans['action'] == action:
             date = datetime.strptime(trans['raw']['date'], '%Y-%m-%d %H:%M:%S')
             if stats['oldest'] == None: stats['oldest'] = date
             elif date < stats['oldest']: stats['oldest'] = date
@@ -140,14 +140,14 @@ class AllTransactions(object):
 
    #############################################################################
 
-   def getExpenseMonthlyBreakdown(self):
+   def getActionMonthlyBreakdown(self, action: str):
       def incrMonth(month, year):
          month += 1
          if month > 12:
             month = 1
             year += 1
          return month,year
-      stats = self.getExpenseStats()
+      stats = self.getActionStats(action)
 
       # Set the month boundaries
       curMon = stats['oldest'].month
@@ -157,16 +157,16 @@ class AllTransactions(object):
       next = datetime(nextYear, nextMon, 1)
 
       retVal = {}
-      expenseParseCount = 0
+      parseCount = 0
       while cur < stats['newest']:
          key = cur.strftime("%Y-%m")
          retVal[key] = 0
          for trans in self.transList:
-            if trans['action'] == 'expense':
+            if trans['action'] == action:
                date = datetime.strptime(trans['raw']['date'], '%Y-%m-%d %H:%M:%S')
                if date >= cur and date < next:
                   retVal[key] += float(trans['raw']['amount'])
-                  expenseParseCount += 1
+                  parseCount += 1
          # Update the month boundaries
          curMon = nextMon
          curYear = nextYear
@@ -174,7 +174,7 @@ class AllTransactions(object):
          cur = datetime(curYear, curMon, 1)
          next = datetime(nextYear, nextMon, 1)
       
-      if expenseParseCount != stats['count']:
+      if parseCount != stats['count']:
          print('failure')
       
       return retVal
@@ -354,7 +354,7 @@ if __name__== "__main__":
    args = parser.parse_args()
 
    allTrans = AllTransactions(args.trans)
-   print(allTrans.getExpenseMonthlyBreakdown())
+   print(allTrans.getActionMonthlyBreakdown('move'))
 
    if args.docs != None:
       with open(args.docs, 'r') as f:
