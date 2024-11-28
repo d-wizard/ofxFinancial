@@ -84,6 +84,11 @@ class AllTransactions(object):
    
    #############################################################################
 
+   def getTransActionDateTime(self, trans) -> datetime:
+      return datetime.strptime(trans['raw']['date'], '%Y-%m-%d %H:%M:%S')
+
+   #############################################################################
+
    def saveTransactions(self):
       print(f"Saving Transactions: {self.transactionsAdded} Transaction(s) added, {self.transactionsModified} Transaction(s) modified")
       if self.transactionsAdded > 0 or self.transactionsModified > 0:
@@ -130,7 +135,7 @@ class AllTransactions(object):
       stats = {'oldest': None, 'newest': None, 'count': 0}
       for trans in self.transList:
          if trans['action'] == action:
-            date = datetime.strptime(trans['raw']['date'], '%Y-%m-%d %H:%M:%S')
+            date = self.getTransActionDateTime(trans)
             if stats['oldest'] == None: stats['oldest'] = date
             elif date < stats['oldest']: stats['oldest'] = date
             if stats['newest'] == None: stats['newest'] = date
@@ -161,12 +166,17 @@ class AllTransactions(object):
       while cur < stats['newest']:
          key = cur.strftime("%Y-%m")
          retVal[key] = 0
-         for trans in self.transList:
-            if trans['action'] == action:
-               date = datetime.strptime(trans['raw']['date'], '%Y-%m-%d %H:%M:%S')
-               if date >= cur and date < next:
-                  retVal[key] += float(trans['raw']['amount'])
-                  parseCount += 1
+
+         # Filter out non-matching transactions
+         transList = self.transList
+         transList = self.filterByDateRange(transList, cur, next)
+         transList = self.filterByAction(transList, action)
+         
+         # Sum up matching transactions
+         for trans in transList:
+            retVal[key] += float(trans['raw']['amount'])
+            parseCount += 1
+
          # Update the month boundaries
          curMon = nextMon
          curYear = nextYear
@@ -179,8 +189,25 @@ class AllTransactions(object):
       
       return retVal
 
+   #############################################################################
 
+   def filterByDateRange(self, transList, startInclusive: datetime = None, stopExclusive: datetime = None):
+      retVal = []
+      for trans in transList:
+         date = self.getTransActionDateTime(trans)
+         if (startInclusive == None or date >= startInclusive) and (stopExclusive == None or date < stopExclusive):
+            retVal.append(trans)
+      return retVal
 
+   #############################################################################
+
+   def filterByAction(self, transList, action: str):
+      retVal = []
+      for trans in transList:
+         if trans['action'] == action:
+            retVal.append(trans)
+      return retVal
+               
 
 ################################################################################
 ################################################################################
