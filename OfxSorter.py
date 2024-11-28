@@ -7,6 +7,8 @@ import pandas as pd
 import argparse
 import json
 import re
+import matplotlib.pyplot as plt
+import numpy as np
 
 ################################################################################
 
@@ -209,6 +211,33 @@ class AllTransactions(object):
             retVal.append(trans)
       return retVal
                
+   #############################################################################
+
+   def plotBreakdown(self, breakdown):
+      x = []
+      y = []
+      labels = []
+      count = 1
+      for key, value in breakdown.items():
+         labels.append(key)
+         y.append(value)
+         x.append(count)
+         count += 1
+
+      # Create the plot
+      plt.plot(x, y)
+
+      # Set the x-axis labels
+      plt.xticks(x, labels)
+
+      # Add title and axis labels
+      # plt.title("Plot with Labeled X-Axis")
+      # plt.xlabel("Categories")
+      # plt.ylabel("Values")
+
+      # Show the plot
+      plt.show()
+
 
 ################################################################################
 ################################################################################
@@ -382,7 +411,7 @@ if __name__== "__main__":
    args = parser.parse_args()
 
    allTrans = AllTransactions(args.trans)
-   print(allTrans.getActionMonthlyBreakdown('move'))
+   allTrans.plotBreakdown(allTrans.getActionMonthlyBreakdown('expense'))
 
    if args.docs != None:
       with open(args.docs, 'r') as f:
