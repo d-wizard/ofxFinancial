@@ -319,11 +319,11 @@ class OfxSorter(object):
          else:
             # Transaction has been categorized. Check for changes.
             if ruleMatch and action != 'ask' and self.storedTrans.isMetaDataDifferent(transactionDict, self.docsEntry, action):
-               print(f"Meta Data Doesn't match {self.docsEntry["name"]} - type: {transaction.type} | payee: {transaction.payee} | date: {transaction.date} | amount: {transaction.amount}")
+               print(f"Meta Data Doesn't match: {self.docsEntry["name"]} - type: {transaction.type} | payee: {transaction.payee} | date: {transaction.date} | amount: {transaction.amount}")
                # self.storedTrans.modTransaction(transactionDict, self.docsEntry, action)
             
             if not self.storedTrans.isMetaDataActionValid(transactionDict):
-               print(f"Bad Action {self.docsEntry["name"]} - type: {transaction.type} | payee: {transaction.payee} | date: {transaction.date} | amount: {transaction.amount}")
+               print(f"Bad Action: {self.docsEntry["name"]} - type: {transaction.type} | payee: {transaction.payee} | date: {transaction.date} | amount: {transaction.amount}")
                # if (ruleMatch and action == 'ask') or not ruleMatch:
                #    action = self.getAction(transaction, self.docsEntry["name"])
                # self.storedTrans.modTransaction(transactionDict, self.docsEntry, action)
@@ -334,7 +334,7 @@ class OfxSorter(object):
    def getAction(self, transaction: Transaction, name: str):
       action = None
       while action == None:
-         print(f"Need to label transaction {name} - type: {transaction.type} | payee: {transaction.payee} | date: {transaction.date} | amount: {transaction.amount}.")
+         print(f"Need to label transaction: {name} - type: {transaction.type} | payee: {transaction.payee} | date: {transaction.date} | amount: {transaction.amount}.")
          val = input("Select 'm' for moving money, 'i' for income, 'e' for expense > ")
          if val == 'm': action = 'move'
          elif val == 'i': action = 'income'
