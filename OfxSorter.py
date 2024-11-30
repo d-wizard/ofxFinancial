@@ -240,23 +240,22 @@ class AllTransactions(object):
 
    #############################################################################
 
-   def categorizeExpenses(self, expensesJsonPath):
+   def categorizeExpenses(self, expensesJsonPath, defaultCat = 'ask'):
       with open(expensesJsonPath, 'r') as f:
          expCatDict = json.load(f)
          transList = self.filterByAction(self.transList, "expense")
          categories = expCatDict["categories"]
-         matches = []
-         mismatches = []
+
          for trans in transList:
-            trans = trans['raw']
             ruleMatch = False
+            expenseCat = defaultCat
             for rule in expCatDict['rules']:
                checks = rule[0]
                cat = rule[1]
                ruleMatch = True # start True, must pass each check
                for check in checks:
                   transKey, transMatchStr = list(check.items())[0]
-                  transVal = trans[transKey]
+                  transVal = trans['raw'][transKey]
                   if transKey == 'amount': # Amount is special, can do greater than, less than, equal, etc
                      cmd, val = transMatchStr.split(' ')
                      amount = -float(transVal) # expenses are negative values so negate
@@ -269,12 +268,34 @@ class AllTransactions(object):
                   elif not re.match(transMatchStr, transVal):
                      ruleMatch = False
                if ruleMatch:
+                  expenseCat = cat
                   break
-            if ruleMatch: matches.append(trans)
-            else: mismatches.append(trans)
-         
-         for match in mismatches:
-            print(match)
+
+            if expenseCat == 'ask':
+               expenseCat = self.getCategory(trans, categories)
+
+   #############################################################################
+
+   def getCategory(self, trans, categories):
+      retVal = None
+      while retVal == None:
+         print(f"Need to categorize: {trans['name']} - type: {trans['raw']['type']} | payee: {trans['raw']['payee']} | date: {trans['raw']['date']} | amount: {trans['raw']['amount']}.")
+         selectStr = "Select "
+         selectNum = 0
+         selectDict = {}
+         for cat in categories:
+            selectStr += f"'{selectNum}' for '{cat}', "
+            selectDict[selectNum] = cat
+            selectNum += 1
+
+         val = input(selectStr + " > ")
+         try:
+             if int(val) >= 0 and int(val) < selectNum:
+                retVal = selectDict[int(val)]
+         except:
+            pass
+         if (retVal == None): print("Invalid selection. Try again.")
+      return retVal
 
 
 ################################################################################
