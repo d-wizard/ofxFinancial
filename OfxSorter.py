@@ -238,6 +238,44 @@ class AllTransactions(object):
       # Show the plot
       plt.show()
 
+   #############################################################################
+
+   def categorizeExpenses(self, expensesJsonPath):
+      with open(expensesJsonPath, 'r') as f:
+         expCatDict = json.load(f)
+         transList = self.filterByAction(self.transList, "expense")
+         categories = expCatDict["categories"]
+         matches = []
+         mismatches = []
+         for trans in transList:
+            trans = trans['raw']
+            ruleMatch = False
+            for rule in expCatDict['rules']:
+               checks = rule[0]
+               cat = rule[1]
+               ruleMatch = True # start True, must pass each check
+               for check in checks:
+                  transKey, transMatchStr = list(check.items())[0]
+                  transVal = trans[transKey]
+                  if transKey == 'amount': # Amount is special, can do greater than, less than, equal, etc
+                     cmd, val = transMatchStr.split(' ')
+                     amount = -float(transVal) # expenses are negative values so negate
+                     val = float(val)
+                     if cmd == '>' and not (amount > val): ruleMatch = False
+                     elif  cmd == '>=' and not (amount >= val): ruleMatch = False
+                     elif  cmd == '==' and not (amount == val): ruleMatch = False
+                     elif  cmd == '<=' and not (amount <= val): ruleMatch = False
+                     elif  cmd == '<' and not (amount < val): ruleMatch = False
+                  elif not re.match(transMatchStr, transVal):
+                     ruleMatch = False
+               if ruleMatch:
+                  break
+            if ruleMatch: matches.append(trans)
+            else: mismatches.append(trans)
+         
+         for match in mismatches:
+            print(match)
+
 
 ################################################################################
 ################################################################################
@@ -407,11 +445,12 @@ if __name__== "__main__":
    parser = argparse.ArgumentParser()
    parser.add_argument("-d", "--docs", help="Json that describes the documents to read.")
    parser.add_argument("-t", "--trans", help="Json contains all the previous parsed transactions.")
+   parser.add_argument("-e", "--expenses", help="Json that defines how to categorize expenses.")
    parser.add_argument("-x", "--excel", help="Path to save spreadsheet to.")
    args = parser.parse_args()
 
    allTrans = AllTransactions(args.trans)
-   allTrans.plotBreakdown(allTrans.getActionMonthlyBreakdown('expense'))
+   # allTrans.plotBreakdown(allTrans.getActionMonthlyBreakdown('expense'))
 
    if args.docs != None:
       with open(args.docs, 'r') as f:
@@ -428,6 +467,9 @@ if __name__== "__main__":
                      ofx.applyRulesToTransactions()
    
       allTrans.saveTransactions()
+
+   if args.expenses != None:
+      allTrans.categorizeExpenses(args.expenses)
 
    if args.excel != None:
       # If just a directory is specified generated the file name.
