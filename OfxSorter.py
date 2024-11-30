@@ -31,7 +31,7 @@ class AllTransactions(object):
          self.transList = []
       self.transactionsAdded = 0
       self.transactionsModified = 0
-      self.metaDataKeys = ["action", "type", "type", "name"]
+      self.metaDataKeys = ["action", "type", "type", "name", "category"]
       self.validActions = ['income', 'expense', 'move']
 
    #############################################################################
@@ -64,6 +64,14 @@ class AllTransactions(object):
             trans["action"] = action
             trans["type"] = docEntry["type"]
             trans["name"] = docEntry["name"]
+            self.transactionsModified += 1
+
+   #############################################################################
+
+   def modCategory(self, transToMod, category: str):
+      for trans in self.transList:
+         if trans["raw"] == transToMod:
+            trans["category"] = category
             self.transactionsModified += 1
 
    #############################################################################
@@ -105,15 +113,15 @@ class AllTransactions(object):
 
    def makeTransactionSpreadsheet(self, savePath: str):
       # Function for adding to the dictionary.
-      def transToPandaDict(theDict, dictKey: str, num: int, val: str):
+      def transToPandaDict(theDict, dictKey: str, num: int, valDict, valKey: str):
          if dictKey not in theDict.keys():
             theDict[dictKey] = {}
 
          try:
             if dictKey == "amount":
-               theDict[dictKey][num] = float(val)
+               theDict[dictKey][num] = float(valDict[valKey])
             else:
-               theDict[dictKey][num] = val
+               theDict[dictKey][num] = valDict[valKey]
          except:
             pass
       
@@ -122,9 +130,9 @@ class AllTransactions(object):
       transNum = 0
       for trans in self.transList:
          for key in self.metaDataKeys:
-            transToPandaDict(transDicts, 'meta.'+key, transNum, trans[key])
+            transToPandaDict(transDicts, 'meta.'+key, transNum, trans, key)
          for key in TRANSACTION_KEYS:
-            transToPandaDict(transDicts, key, transNum, trans["raw"][key])
+            transToPandaDict(transDicts, key, transNum, trans["raw"], key)
          transNum += 1
 
       # Save as Excel Spreadsheet via Pandas
@@ -147,7 +155,7 @@ class AllTransactions(object):
 
    #############################################################################
 
-   def getActionMonthlyBreakdown(self, action: str):
+   def getActionMonthlyBreakdown(self, action: str, categories = []):
       def incrMonth(month, year):
          month += 1
          if month > 12:
@@ -174,7 +182,9 @@ class AllTransactions(object):
          transList = self.transList
          transList = self.filterByDateRange(transList, cur, next)
          transList = self.filterByAction(transList, action)
-         
+         if len(categories) > 0:
+            transList = self.filterByCategories(transList, categories)
+
          # Sum up matching transactions
          for trans in transList:
             retVal[key] += float(trans['raw']['amount'])
@@ -187,7 +197,7 @@ class AllTransactions(object):
          cur = datetime(curYear, curMon, 1)
          next = datetime(nextYear, nextMon, 1)
       
-      if parseCount != stats['count']:
+      if parseCount != stats['count'] and len(categories) == 0: # sanity check only works without categories list.
          print('failure')
       
       return retVal
@@ -208,6 +218,15 @@ class AllTransactions(object):
       retVal = []
       for trans in transList:
          if trans['action'] == action:
+            retVal.append(trans)
+      return retVal
+
+   #############################################################################
+
+   def filterByCategories(self, transList, categories):
+      retVal = []
+      for trans in transList:
+         if trans['category'] in categories:
             retVal.append(trans)
       return retVal
                
@@ -271,8 +290,19 @@ class AllTransactions(object):
                   expenseCat = cat
                   break
 
-            if expenseCat == 'ask':
+            # Update the category associated with this expense.
+            try:
+               curCat = trans['category']
+            except:
+               curCat = None
+
+            if expenseCat == 'ask' and curCat == None:
                expenseCat = self.getCategory(trans, categories)
+               self.modCategory(trans['raw'], expenseCat)
+            elif curCat == None:
+               self.modCategory(trans['raw'], expenseCat) # No category yet, add it here.
+            elif expenseCat != 'ask' and expenseCat != curCat:
+               print(f'Current Expense Category: {curCat} | Rule says: {expenseCat}')
 
    #############################################################################
 
@@ -280,11 +310,11 @@ class AllTransactions(object):
       retVal = None
       while retVal == None:
          print(f"Need to categorize: {trans['name']} - type: {trans['raw']['type']} | payee: {trans['raw']['payee']} | date: {trans['raw']['date']} | amount: {trans['raw']['amount']}.")
-         selectStr = "Select "
+         selectStr = "Select the number that matches the category: "
          selectNum = 0
          selectDict = {}
          for cat in categories:
-            selectStr += f"'{selectNum}' for '{cat}', "
+            selectStr += f"{cat}({selectNum})', "
             selectDict[selectNum] = cat
             selectNum += 1
 
@@ -487,7 +517,6 @@ if __name__== "__main__":
                      ofx.importOfx()
                      ofx.applyRulesToTransactions()
    
-      allTrans.saveTransactions()
 
    if args.expenses != None:
       allTrans.categorizeExpenses(args.expenses)
@@ -497,3 +526,5 @@ if __name__== "__main__":
       path = args.excel if not os.path.isdir(args.excel) else os.path.join(args.excel, "transactions_" + getUniqueFileNameTimeStr() + ".xlsx")
       allTrans.makeTransactionSpreadsheet(path)
 
+   # Save transactions before exiting.
+   allTrans.saveTransactions()
