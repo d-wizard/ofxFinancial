@@ -175,7 +175,7 @@ class AllTransactions(object):
       parseCount = 0
       while cur < stats['newest']:
          # Key is a specific month in a specific year
-         key = cur.strftime("%Y-%m")
+         key = cur.strftime("%y-%m")
          retVal[key] = 0 # Start at 0 dollars than add each matching transaction amount.
 
          # Filter out non-matching transactions
@@ -501,7 +501,7 @@ if __name__== "__main__":
    args = parser.parse_args()
 
    allTrans = AllTransactions(args.trans)
-   # allTrans.plotBreakdown(allTrans.getActionMonthlyBreakdown('expense'))
+   allTrans.plotBreakdown(allTrans.getActionMonthlyBreakdown('expense', ["home_auto", "entertainment", "misc"]))
 
    if args.docs != None:
       with open(args.docs, 'r') as f:
