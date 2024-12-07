@@ -180,31 +180,22 @@ class AllTransactions(object):
    #############################################################################
 
    def getActionMonthlyBreakdown(self, action: str, categories = []):
-      def incrMonth(month, year):
-         month += 1
-         if month > 12:
-            month = 1
-            year += 1
-         return month,year
       stats = self.getActionStats(action)
+      months = getMonthsInRange(stats['oldest'], stats['newest'])
 
-      # Set the month boundaries
-      curMon = stats['oldest'].month
-      curYear = stats['oldest'].year
-      nextMon, nextYear = incrMonth(curMon, curYear)
-      cur = datetime(curYear, curMon, 1)
-      next = datetime(nextYear, nextMon, 1)
+      return self.getActionBreakdown(months, action, categories)
 
+   #############################################################################
+
+   def getActionBreakdown(self, timeRanges, action: str, categories = []):
       retVal = {}
       parseCount = 0
-      while cur < stats['newest']:
-         # Key is a specific month in a specific year
-         key = cur.strftime("%y-%m")
+      for key, thisTimeRange in timeRanges.items():
          retVal[key] = 0 # Start at 0 dollars than add each matching transaction amount.
 
          # Filter out non-matching transactions
          transList = self.transList
-         transList = self.filterByDateRange(transList, cur, next)
+         transList = self.filterByDateRange(transList, thisTimeRange[0], thisTimeRange[1])
          transList = self.filterByAction(transList, action)
          if len(categories) > 0:
             transList = self.filterByCategories(transList, categories)
@@ -214,18 +205,8 @@ class AllTransactions(object):
             retVal[key] += float(trans['raw']['amount'])
             parseCount += 1
 
-         # Update the month boundaries
-         curMon = nextMon
-         curYear = nextYear
-         nextMon, nextYear = incrMonth(curMon, curYear)
-         cur = datetime(curYear, curMon, 1)
-         next = datetime(nextYear, nextMon, 1)
-      
-      if parseCount != stats['count'] and len(categories) == 0: # sanity check only works without categories list.
-         print('failure')
-      
       return retVal
-
+   
    #############################################################################
 
    def filterByDateRange(self, transList, startInclusive: datetime = None, stopExclusive: datetime = None):
