@@ -40,7 +40,27 @@ def getMonthsInRange(start_inclusive: datetime, end_inclusive: datetime):
       cur = next
    return retVal
 
+def showBarPlot(dataDict: dict, barGroupLabels):
+   
+   numBarGroups = len(barGroupLabels)   
+   numCategories = len(dataDict.items())
+   barWidth = 1.0 / float(numCategories + 1)
+   barPositions = []
+   
+   barPopStart = np.arange(numBarGroups) 
+   for i in range(numBarGroups):
+      barPositions.append([x + barWidth*float(i) for x in barPopStart])
 
+   fig = plt.subplots()
+   i = 0
+   for key, val in dataDict.items():
+      plt.bar(barPositions[i], val, width = barWidth, label = key) 
+      i += 1
+
+   plt.xticks([r + barWidth for r in range(numBarGroups)], barGroupLabels)
+
+   plt.legend()
+   plt.show()
 ################################################################################
 ################################################################################
 ################################################################################
@@ -207,6 +227,49 @@ class AllTransactions(object):
 
       return retVal
    
+   #############################################################################
+
+   def plotActionBreakdown(self, timeRanges, action: str, categories = []):
+
+      categorySumsByTimeRange = {} # Dict of lists. Each dict key is a category. Each items is a list of monthly sums.
+      if len(categories) > 0:
+         for catName in categories:
+            categorySumsByTimeRange[catName] = [] # Initialize to an empty list
+            for i in range(len(timeRanges.items())):
+               categorySumsByTimeRange[catName].append(0)
+      else:
+         categorySumsByTimeRange['all'] = [] # Initialize to an empty list
+         for i in range(len(timeRanges.items())):
+            categorySumsByTimeRange['all'].append(0)
+
+      timeIndex = 0
+      labels = []
+      for key, thisTimeRange in timeRanges.items():
+         # Filter out non-matching transactions
+         transList = self.transList
+         transList = self.filterByDateRange(transList, thisTimeRange[0], thisTimeRange[1])
+         transList = self.filterByAction(transList, action)
+         if len(categories) > 0:
+            for trans in transList:
+               if trans['category'] in categories:
+                  categorySumsByTimeRange[trans['category']][timeIndex] += float(trans['raw']['amount'])
+         else:
+            # Take all 
+            for trans in transList:
+               categorySumsByTimeRange['all'][timeIndex] += float(trans['raw']['amount'])
+
+         timeIndex += 1
+         labels.append(key)
+
+      if action == "expense":
+         # expenses are negative. Negate them to be positive.
+         for key, val in categorySumsByTimeRange.items():
+            for i in range(len(categorySumsByTimeRange[key])):
+               categorySumsByTimeRange[key][i] = -categorySumsByTimeRange[key][i]
+
+      showBarPlot(categorySumsByTimeRange, labels)
+
+
    #############################################################################
 
    def filterByDateRange(self, transList, startInclusive: datetime = None, stopExclusive: datetime = None):
