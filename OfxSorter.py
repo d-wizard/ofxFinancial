@@ -538,11 +538,16 @@ class OfxSorter(object):
 
 # Main start
 if __name__== "__main__":
+
+   def list_of_strings(arg):
+      return arg.split(',')
+
    parser = argparse.ArgumentParser()
    parser.add_argument("-d", "--docs", help="Json that describes the documents to read.")
    parser.add_argument("-t", "--trans", help="Json contains all the previous parsed transactions.")
    parser.add_argument("-e", "--expenses", help="Json that defines how to categorize expenses.")
    parser.add_argument("-x", "--excel", help="Path to save spreadsheet to.")
+   parser.add_argument('--categories', type=list_of_strings, help="Categories to plot (separated by commas, without spaces)")
    args = parser.parse_args()
 
    allTrans = AllTransactions(args.trans)
@@ -569,6 +574,11 @@ if __name__== "__main__":
       # If just a directory is specified generated the file name.
       path = args.excel if not os.path.isdir(args.excel) else os.path.join(args.excel, "transactions_" + getUniqueFileNameTimeStr() + ".xlsx")
       allTrans.makeTransactionSpreadsheet(path)
+
+   if args.categories != None and len(args.categories) > 0:
+      stats = allTrans.getActionStats('expense')
+      months = getMonthsInRange(stats['oldest'], stats['newest'])
+      allTrans.plotActionBreakdown(months, 'expense', args.categories)
 
    # Save transactions before exiting.
    allTrans.saveTransactions()
