@@ -18,6 +18,8 @@ def getUniqueFileNameTimeStr():
 TRANSACTION_KEYS = ["payee", "type", "date", "user_date", "amount", "id", "memo", "sic", "mcc", "checknum"]
 
 ################################################################################
+################################################################################
+################################################################################
 
 def getMonthsInRange(start_inclusive: datetime, end_inclusive: datetime):
    def incrMonth(inVal: datetime):
@@ -301,33 +303,6 @@ class AllTransactions(object):
                
    #############################################################################
 
-   def plotBreakdown(self, breakdown):
-      x = []
-      y = []
-      labels = []
-      count = 1
-      for key, value in breakdown.items():
-         labels.append(key)
-         y.append(value)
-         x.append(count)
-         count += 1
-
-      # Create the plot
-      plt.plot(x, y)
-
-      # Set the x-axis labels
-      plt.xticks(x, labels)
-
-      # Add title and axis labels
-      # plt.title("Plot with Labeled X-Axis")
-      # plt.xlabel("Categories")
-      # plt.ylabel("Values")
-
-      # Show the plot
-      plt.show()
-
-   #############################################################################
-
    def categorizeExpenses(self, expensesJsonPath, defaultCat = 'ask'):
       with open(expensesJsonPath, 'r') as f:
          expCatDict = json.load(f)
@@ -559,50 +534,6 @@ class OfxSorter(object):
          else: print("Invalid selection. Try again.")
       return action
 
-
-def showPlot():
-   # set width of bar 
-   barWidth = 0.25
-   fig = plt.subplots()#figsize =(12, 8)) 
-
-   # set height of bar 
-   IT = [12.5, 30, 1, 8, 22] 
-   ECE = [28, 6, 16, 5, 10] 
-   CSE = [29, 3, 24, 25, 17] 
-
-   # Set position of bar on X axis 
-   br1 = np.arange(len(IT)) 
-   br2 = [x + barWidth for x in br1] 
-   br3 = [x + barWidth for x in br2] 
-
-   # Make the plot
-
-   print(br1)
-   print(IT)
-   plt.bar(br1, IT, #color ='r', 
-           width = barWidth, 
-         # edgecolor ='grey', 
-         label ='IT') 
-   print(br2)
-   plt.bar(br2, ECE, #color ='g', 
-           width = barWidth, 
-         # edgecolor ='grey', 
-         label ='ECE') 
-   print(br3)
-   plt.bar(br3, CSE, #color ='b', 
-           width = barWidth, 
-         # edgecolor ='grey', 
-         label ='CSE') 
-
-   # Adding Xticks 
-   # plt.xlabel('Branch', fontweight ='bold', fontsize = 15) 
-   # plt.ylabel('Students passed', fontweight ='bold', fontsize = 15) 
-   # plt.xticks([r + barWidth for r in range(len(IT))], 
-   #       ['2015', '2016', '2017', '2018', '2019'])
-
-   plt.legend()
-   plt.show()
-
 ################################################################################
 
 # Main start
@@ -614,38 +545,30 @@ if __name__== "__main__":
    parser.add_argument("-x", "--excel", help="Path to save spreadsheet to.")
    args = parser.parse_args()
 
-   # showPlot()
-
    allTrans = AllTransactions(args.trans)
-   stats = allTrans.getActionStats('expense')
-   months = getMonthsInRange(stats['oldest'], stats['newest'])
-   allTrans.plotActionBreakdown(months, 'expense')#, ["taxes", "insurance", "utilities", "medical", "home_auto", "entertainment", "misc"])
 
-# allTrans = AllTransactions(args.trans)
-# allTrans.plotBreakdown(allTrans.getActionMonthlyBreakdown('expense', ["home_auto", "entertainment", "misc"]))
-
-   # if args.docs != None:
-   #    with open(args.docs, 'r') as f:
-   #       docsEntries = json.load(f)
-   #       for docsEntry in docsEntries:
-   #          fullDir = os.path.join(os.path.dirname(args.docs), docsEntry["dir"])
-   #          for fileName in os.listdir(fullDir):
-   #             fileName = os.path.join(fullDir, fileName)
-   #             if os.path.isfile(fileName):
-   #                ext = os.path.splitext(fileName)[1].lower()
-   #                if ext == '.ofx' or ext == '.qfx' or ext == '.qbo':
-   #                   ofx = OfxSorter(fileName, allTrans, docsEntry)
-   #                   ofx.importOfx()
-   #                   ofx.applyRulesToTransactions()
+   if args.docs != None:
+      with open(args.docs, 'r') as f:
+         docsEntries = json.load(f)
+         for docsEntry in docsEntries:
+            fullDir = os.path.join(os.path.dirname(args.docs), docsEntry["dir"])
+            for fileName in os.listdir(fullDir):
+               fileName = os.path.join(fullDir, fileName)
+               if os.path.isfile(fileName):
+                  ext = os.path.splitext(fileName)[1].lower()
+                  if ext == '.ofx' or ext == '.qfx' or ext == '.qbo':
+                     ofx = OfxSorter(fileName, allTrans, docsEntry)
+                     ofx.importOfx()
+                     ofx.applyRulesToTransactions()
    
 
-   # if args.expenses != None:
-   #    allTrans.categorizeExpenses(args.expenses)
+   if args.expenses != None:
+      allTrans.categorizeExpenses(args.expenses)
 
-   # if args.excel != None:
-   #    # If just a directory is specified generated the file name.
-   #    path = args.excel if not os.path.isdir(args.excel) else os.path.join(args.excel, "transactions_" + getUniqueFileNameTimeStr() + ".xlsx")
-   #    allTrans.makeTransactionSpreadsheet(path)
+   if args.excel != None:
+      # If just a directory is specified generated the file name.
+      path = args.excel if not os.path.isdir(args.excel) else os.path.join(args.excel, "transactions_" + getUniqueFileNameTimeStr() + ".xlsx")
+      allTrans.makeTransactionSpreadsheet(path)
 
-   # # Save transactions before exiting.
-   # allTrans.saveTransactions()
+   # Save transactions before exiting.
+   allTrans.saveTransactions()
