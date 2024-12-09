@@ -46,7 +46,7 @@ def showBarPlot(dataDict: dict, barGroupLabels):
    
    numBarGroups = len(barGroupLabels)   
    numCategories = len(dataDict.items())
-   barWidth = 1.0 / float(numCategories + 1)
+   barWidth = 1.0 / float(numCategories)
 
    fig = plt.subplots()
    i = 0
