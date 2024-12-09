@@ -40,27 +40,27 @@ def getMonthsInRange(start_inclusive: datetime, end_inclusive: datetime):
       cur = next
    return retVal
 
+################################################################################
+
 def showBarPlot(dataDict: dict, barGroupLabels):
    
    numBarGroups = len(barGroupLabels)   
    numCategories = len(dataDict.items())
    barWidth = 1.0 / float(numCategories + 1)
-   barPositions = []
-   
-   barPopStart = np.arange(numBarGroups) 
-   for i in range(numBarGroups):
-      barPositions.append([x + barWidth*float(i) for x in barPopStart])
 
    fig = plt.subplots()
    i = 0
    for key, val in dataDict.items():
-      plt.bar(barPositions[i], val, width = barWidth, label = key) 
+      barPositions = [x + barWidth*float(i) for x in np.arange(numBarGroups) ]
+      plt.bar(barPositions, val, width = barWidth, label = key) 
       i += 1
 
-   plt.xticks([r + barWidth for r in range(numBarGroups)], barGroupLabels)
+   labelOffset = barWidth * float((numCategories - 1)/2)
+   plt.xticks([r + labelOffset for r in range(numBarGroups)], barGroupLabels)
 
    plt.legend()
    plt.show()
+
 ################################################################################
 ################################################################################
 ################################################################################
