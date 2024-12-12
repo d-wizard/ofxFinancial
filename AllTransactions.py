@@ -160,10 +160,10 @@ class AllTransactions(object):
 
          # Filter out non-matching transactions
          transList = self.transList
-         transList = self.filterByDateRange(transList, thisTimeRange[0], thisTimeRange[1])
-         transList = self.filterByAction(transList, action)
+         transList = self.__filterByDateRange(transList, thisTimeRange[0], thisTimeRange[1])
+         transList = self.__filterByAction(transList, action)
          if len(categories) > 0:
-            transList = self.filterByCategories(transList, categories)
+            transList = self.__filterByCategories(transList, categories)
 
          # Sum up matching transactions
          for trans in transList:
@@ -192,8 +192,8 @@ class AllTransactions(object):
       for key, thisTimeRange in timeRanges.items():
          # Filter out non-matching transactions
          transList = self.transList
-         transList = self.filterByDateRange(transList, thisTimeRange[0], thisTimeRange[1])
-         transList = self.filterByAction(transList, action)
+         transList = self.__filterByDateRange(transList, thisTimeRange[0], thisTimeRange[1])
+         transList = self.__filterByAction(transList, action)
          if len(categories) > 0:
             for trans in transList:
                if trans['category'] in categories:
@@ -214,10 +214,9 @@ class AllTransactions(object):
 
       PlotHelpers.showBarPlot(categorySumsByTimeRange, labels)
 
-
    #############################################################################
 
-   def filterByDateRange(self, transList, startInclusive: datetime = None, stopExclusive: datetime = None):
+   def __filterByDateRange(self, transList, startInclusive: datetime = None, stopExclusive: datetime = None):
       retVal = []
       for trans in transList:
          date = self.getTransActionDateTime(trans)
@@ -227,7 +226,12 @@ class AllTransactions(object):
 
    #############################################################################
 
-   def filterByAction(self, transList, action: str):
+   def pruneByDateRange(self, startInclusive: datetime = None, stopExclusive: datetime = None): # Permanent version of __filterByDateRange
+      self.transList = self.__filterByDateRange(self.transList, startInclusive, stopExclusive)
+
+   #############################################################################
+
+   def __filterByAction(self, transList, action: str):
       retVal = []
       for trans in transList:
          if trans['action'] == action:
@@ -236,19 +240,29 @@ class AllTransactions(object):
 
    #############################################################################
 
-   def filterByCategories(self, transList, categories):
+   def pruneByDateAction(self, action: str): # Permanent version of __filterByAction
+      self.transList = self.__filterByAction(self.transList, action)
+
+   #############################################################################
+
+   def __filterByCategories(self, transList, categories):
       retVal = []
       for trans in transList:
          if trans['category'] in categories:
             retVal.append(trans)
       return retVal
+
+   #############################################################################
+
+   def pruneByCategories(self, categories): # Permanent version of __filterByCategories
+      self.transList = self.__filterByCategories(self.transList, categories)
                
    #############################################################################
 
    def categorizeExpenses(self, expensesJsonPath, defaultCat = 'ask'):
       with open(expensesJsonPath, 'r') as f:
          expCatDict = json.load(f)
-         transList = self.filterByAction(self.transList, "expense")
+         transList = self.__filterByAction(self.transList, "expense")
          categories = expCatDict["categories"]
 
          for trans in transList:
@@ -283,7 +297,7 @@ class AllTransactions(object):
                curCat = None
 
             if expenseCat == 'ask' and curCat == None:
-               expenseCat = self.getCategory(trans, categories)
+               expenseCat = self.__askUserForCategory(trans, categories)
                self.modCategory(trans['raw'], expenseCat)
             elif curCat == None:
                self.modCategory(trans['raw'], expenseCat) # No category yet, add it here.
@@ -292,7 +306,7 @@ class AllTransactions(object):
 
    #############################################################################
 
-   def getCategory(self, trans, categories):
+   def __askUserForCategory(self, trans, categories):
       retVal = None
       while retVal == None:
          print(f"Need to categorize: {trans['name']} - type: {trans['raw']['type']} | payee: {trans['raw']['payee']} | date: {trans['raw']['date']} | amount: {trans['raw']['amount']}.")
