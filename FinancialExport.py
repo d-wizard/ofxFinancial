@@ -20,13 +20,18 @@ def getDateTimeFromCmdLineArg(arg: str):
 
 # Main start
 if __name__== "__main__":
+   def list_of_strings(arg):
+      return arg.split(',')
+
    parser = argparse.ArgumentParser()
    parser.add_argument("-t", "--trans", required=True, help="Json contains all the previous parsed transactions.")
    parser.add_argument("-S", "--start", help="Time Range Start (inclusive). Format is YY (for year only), YY:MM (year and month), YY:MM:DD (down to the day).")
    parser.add_argument("-E", "--end", help="Time Range End (inclusive). Format is YY (for year only), YY:MM (year and month), YY:MM:DD (down to the day).")
-   parser.add_argument("-Y", "--years", type=float, help="How many years in the past to go back.")
-   parser.add_argument("-M", "--months", type=float, help="How many month in the past to go back.")
+   parser.add_argument("-Y", "--years", type=float, help="How many years in the range.")
+   parser.add_argument("-M", "--months", type=float, help="How many month in the range.")
    parser.add_argument("-x", "--excel", help="Path to save spreadsheet to.")
+   parser.add_argument("-e", "--expenses_plot", action='store_true', help="Plot expenses.")
+   parser.add_argument('--categories', default=[], type=list_of_strings, help="Categories to plot (separated by commas, without spaces)")
 
    args = parser.parse_args()
 
@@ -54,9 +59,6 @@ if __name__== "__main__":
       elif args.months != None:
          args.start = args.end - timedelta(days=(args.months*365.24/12.0))
 
-   # print(args.start)
-   # print(args.end)
-
    # Import transactions from the json file.
    allTrans = AllTransactions(args.trans)
    allTrans.pruneByDateRange(args.start, args.end)
@@ -65,3 +67,8 @@ if __name__== "__main__":
       # If just a directory is specified generated the file name.
       path = args.excel if not os.path.isdir(args.excel) else os.path.join(args.excel, "transactions_" + getUniqueFileNameTimeStr() + ".xlsx")
       allTrans.makeTransactionSpreadsheet(path)
+
+   if args.expenses_plot:
+      stats = allTrans.getActionStats('expense')
+      months = getMonthsInRange(stats['oldest'], stats['newest'])
+      allTrans.plotActionBreakdown(months, 'expense', args.categories)
