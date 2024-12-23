@@ -31,3 +31,17 @@ def getMonthsInRange(start_inclusive: datetime, end_inclusive: datetime):
       retVal[key] = [cur,next]
       cur = next
    return retVal
+
+################################################################################
+
+def getYearsInRange(start_inclusive: datetime, end_inclusive: datetime):
+   retVal = {}
+   cur = datetime(start_inclusive.year, 1, 1)
+   while cur <= end_inclusive:
+      # Key is a the year
+      key = cur.strftime("%y")
+      
+      next = datetime(cur.year+1, 1, 1)
+      retVal[key] = [cur,next]
+      cur = next
+   return retVal

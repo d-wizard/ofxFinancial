@@ -72,3 +72,6 @@ if __name__== "__main__":
       stats = allTrans.getActionStats('expense')
       months = getMonthsInRange(stats['oldest'], stats['newest'])
       allTrans.plotActionBreakdown(months, 'expense', args.categories)
+      
+      years = getYearsInRange(stats['oldest'], stats['newest'])
+      allTrans.plotActionBreakdown(years, 'expense', args.categories)
