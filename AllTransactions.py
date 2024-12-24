@@ -198,6 +198,8 @@ class AllTransactions(object):
             for trans in transList:
                if trans['category'] in categories:
                   categorySumsByTimeRange[trans['category']][timeIndex] += float(trans['raw']['amount'])
+               elif 'else' in categories: # group all other categories together
+                  categorySumsByTimeRange['else'][timeIndex] += float(trans['raw']['amount'])
          else:
             # Take all 
             for trans in transList:
