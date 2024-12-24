@@ -31,6 +31,8 @@ if __name__== "__main__":
    parser.add_argument("-M", "--months", type=float, help="How many month in the range.")
    parser.add_argument("-x", "--excel", help="Path to save spreadsheet to.")
    parser.add_argument("-e", "--expenses_plot", action='store_true', help="Plot expenses.")
+   parser.add_argument("-a", "--actions_plot", action='store_true', help="Plot expenses.")
+   parser.add_argument("--plot_years", action='store_true', help="Plot by year (rather than by month).")
    parser.add_argument('--categories', default=[], type=list_of_strings, help="Categories to plot (separated by commas, without spaces)")
 
    args = parser.parse_args()
@@ -68,10 +70,22 @@ if __name__== "__main__":
       path = args.excel if not os.path.isdir(args.excel) else os.path.join(args.excel, "transactions_" + getUniqueFileNameTimeStr() + ".xlsx")
       allTrans.makeTransactionSpreadsheet(path)
 
+   # Plot expenses by category
    if args.expenses_plot:
       stats = allTrans.getActionStats('expense')
-      months = getMonthsInRange(stats['oldest'], stats['newest'])
-      allTrans.plotActionBreakdown(months, 'expense', args.categories)
-      
-      years = getYearsInRange(stats['oldest'], stats['newest'])
-      allTrans.plotActionBreakdown(years, 'expense', args.categories)
+      if not args.plot_years:
+         months = getMonthsInRange(stats['oldest'], stats['newest'])
+         allTrans.plotActionBreakdown(months, 'expense', args.categories)
+      else:
+         years = getYearsInRange(stats['oldest'], stats['newest'])
+         allTrans.plotActionBreakdown(years, 'expense', args.categories)
+
+   # Plot actions by category
+   if args.actions_plot:
+      stats = allTrans.getActionStats('expense') # there should always be expenses every month, so this is a good enough way to determine time frame.
+      if not args.plot_years:
+         months = getMonthsInRange(stats['oldest'], stats['newest'])
+         allTrans.plotActions(months, args.categories)
+      else:
+         years = getYearsInRange(stats['oldest'], stats['newest'])
+         allTrans.plotActions(years, args.categories)
