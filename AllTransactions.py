@@ -176,7 +176,7 @@ class AllTransactions(object):
 
    def plotActionBreakdown(self, timeRanges, action: str, categories = []):
 
-      categorySumsByTimeRange = {} # Dict of lists. Each dict key is a category. Each items is a list of monthly sums.
+      categorySumsByTimeRange = {} # Dict of lists. Each dict key is a category. Each items is a list of sums in the given time range.
       if len(categories) > 0:
          for catName in categories:
             categorySumsByTimeRange[catName] = [] # Initialize to an empty list
@@ -215,6 +215,39 @@ class AllTransactions(object):
                categorySumsByTimeRange[key][i] = -categorySumsByTimeRange[key][i]
 
       PlotHelpers.showBarPlot(categorySumsByTimeRange, labels)
+
+   #############################################################################
+
+   def plotActions(self, timeRanges, actions = []):
+      if len(actions) == 0:
+         actions = self.validActions
+
+      actionSumsBytTimeRange = {} # Dict of lists. Each dict key is a action. Each items is a list of sums in the given time range.
+
+      for actionName in actions:
+         actionSumsBytTimeRange[actionName] = [] # Initialize to an empty list
+         for i in range(len(timeRanges.items())):
+            actionSumsBytTimeRange[actionName].append(0)
+
+      timeIndex = 0
+      labels = []
+      for key, thisTimeRange in timeRanges.items():
+         for actionName in actions:
+            # Filter out non-matching transactions
+            transList = self.transList
+            transList = self.__filterByDateRange(transList, thisTimeRange[0], thisTimeRange[1])
+            transList = self.__filterByAction(transList, actionName)
+            if actionName == "expense":
+               for trans in transList:
+                  actionSumsBytTimeRange[actionName][timeIndex] -= float(trans['raw']['amount']) # expenses are negative. Negate them to be positive.
+            else:
+               for trans in transList:
+                  actionSumsBytTimeRange[actionName][timeIndex] += float(trans['raw']['amount'])
+
+         timeIndex += 1
+         labels.append(key)
+
+      PlotHelpers.showBarPlot(actionSumsBytTimeRange, labels)
 
    #############################################################################
 
