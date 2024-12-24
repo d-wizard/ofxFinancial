@@ -24,3 +24,24 @@ def showBarPlot(dataDict: dict, barGroupLabels):
    plt.legend()
    plt.grid(True)
    plt.show()
+
+################################################################################
+
+def showStackedBarPlot(dataDict: dict, barGroupLabels):
+   
+   numBarGroups = len(barGroupLabels)   
+   barPositions = np.arange(numBarGroups)
+   barWidth = 0.60
+
+   fig = plt.subplots()
+   bottom = [0] * numBarGroups
+   for key, val in dataDict.items():
+      plt.bar(barPositions, val, bottom = bottom, width = barWidth, label = key)
+      for i in range(len(val)):
+         bottom[i] += val[i]
+
+   plt.xticks(barPositions, barGroupLabels)
+
+   plt.legend()
+   plt.grid(axis='y')
+   plt.show()

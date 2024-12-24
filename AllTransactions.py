@@ -214,7 +214,7 @@ class AllTransactions(object):
             for i in range(len(categorySumsByTimeRange[key])):
                categorySumsByTimeRange[key][i] = -categorySumsByTimeRange[key][i]
 
-      PlotHelpers.showBarPlot(categorySumsByTimeRange, labels)
+      PlotHelpers.showStackedBarPlot(categorySumsByTimeRange, labels)
 
    #############################################################################
 
