@@ -32,7 +32,7 @@ def showBarPlotAlt(dataDict: dict, barGroupLabels):
    numBarGroups = len(barGroupLabels)   
    numCategories = len(dataDict.items())
    totalBarWidth = 0.8
-   barOffset = (1.0-totalBarWidth)/2.0
+   barOffset = 0
    barWidth = totalBarWidth / float(numCategories)
 
    fig = plt.subplots()
@@ -42,7 +42,7 @@ def showBarPlotAlt(dataDict: dict, barGroupLabels):
       plt.bar(barPositions, val, width = barWidth, label = key) 
       i += 1
 
-   labelOffset = (totalBarWidth-barOffset)/2#-barWidth/2 #barWidth * float((numCategories - 1)/2)
+   labelOffset = (numCategories-1.0)*barWidth/2
    plt.xticks([r + labelOffset for r in range(numBarGroups)], barGroupLabels)
 
    plt.legend()

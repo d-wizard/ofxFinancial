@@ -39,7 +39,7 @@ def getYearsInRange(start_inclusive: datetime, end_inclusive: datetime):
    cur = datetime(start_inclusive.year, 1, 1)
    while cur <= end_inclusive:
       # Key is a the year
-      key = cur.strftime("%y")
+      key = cur.strftime("%Y")
       
       next = datetime(cur.year+1, 1, 1)
       retVal[key] = [cur,next]

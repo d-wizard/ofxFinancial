@@ -247,7 +247,7 @@ class AllTransactions(object):
          timeIndex += 1
          labels.append(key)
 
-      PlotHelpers.showBarPlot(actionSumsBytTimeRange, labels)
+      PlotHelpers.showBarPlotAlt(actionSumsBytTimeRange, labels)
 
    #############################################################################
 
