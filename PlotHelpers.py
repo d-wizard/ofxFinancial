@@ -35,7 +35,7 @@ def showBarPlotAlt(dataDict: dict, barGroupLabels):
    barOffset = 0
    barWidth = totalBarWidth / float(numCategories)
 
-   fig = plt.subplots()
+   fig, ax = plt.subplots()
    i = 0
    for key, val in dataDict.items():
       barPositions = [barOffset + x + barWidth*float(i) for x in np.arange(numBarGroups) ]
@@ -47,6 +47,7 @@ def showBarPlotAlt(dataDict: dict, barGroupLabels):
 
    plt.legend()
    plt.grid(axis='y')
+   ax.format_coord = lambda x, y: '{:0.2f}'.format(y)
    plt.show()
 
 ################################################################################
@@ -57,7 +58,7 @@ def showStackedBarPlot(dataDict: dict, barGroupLabels):
    barPositions = np.arange(numBarGroups)
    barWidth = 0.60
 
-   fig = plt.subplots()
+   fig, ax = plt.subplots()
    bottom = [0] * numBarGroups
    for key, val in dataDict.items():
       plt.bar(barPositions, val, bottom = bottom, width = barWidth, label = key)
@@ -68,4 +69,5 @@ def showStackedBarPlot(dataDict: dict, barGroupLabels):
 
    plt.legend()
    plt.grid(axis='y')
+   ax.format_coord = lambda x, y: '{:0.2f}'.format(y)
    plt.show()
