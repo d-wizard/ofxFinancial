@@ -294,7 +294,8 @@ class AllTransactions(object):
                
    #############################################################################
 
-   def categorizeExpenses(self, expensesJsonPath, defaultCat = 'ask'):
+   def categorizeExpenses(self, expensesJsonPath, defaultCat = 'ask', reCategorize = False):
+      totalReCategorized = 0
       with open(expensesJsonPath, 'r') as f:
          expCatDict = json.load(f)
          transList = self.__filterByAction(self.transList, "expense")
@@ -338,6 +339,11 @@ class AllTransactions(object):
                self.modCategory(trans['raw'], expenseCat) # No category yet, add it here.
             elif expenseCat != 'ask' and expenseCat != curCat:
                print(f'Current Expense Category: {curCat} | Rule says: {expenseCat}')
+               if reCategorize: # Check if we should actually do the re-cat or if this was just a trial run.
+                  self.modCategory(trans['raw'], expenseCat)
+               totalReCategorized += 1
+      if totalReCategorized > 0:
+         print(f'Total Transactions Re-Categorized: {totalReCategorized}')
 
    #############################################################################
 
@@ -361,3 +367,14 @@ class AllTransactions(object):
             pass
          if (retVal == None): print("Invalid selection. Try again.")
       return retVal
+
+   #############################################################################
+
+   def removeCategory(self, categoryToReCategorize):
+      # Remove the category from any transactions that have 'categoryToRemove' as their category
+      for trans in self.transList:
+         try:
+            if trans["category"] == categoryToReCategorize:
+               trans.pop("category") # remove category from the transaction entry
+         except:
+            pass # category didn't exist in the transaction entry, so nothing to do
