@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import math
 import colorsys
 
 class betterColors:
@@ -13,12 +14,12 @@ class betterColors:
    def get_next_color(self, ):
       retVal = self.hsv_to_hex_rgb(self._h, self._s, self._v)
       self._h += self.goldenAngle
-      self._s += 0.238461981
-      self._v += 0.064984
+      self._s += (math.pi/6.0)
+      self._v += (math.pi/15.0)
       if self._s > 1:
-         self._s -= 0.598461
+         self._s -= (math.e / 4.5)
       if self._v > 1:
-         self._v -= 0.2351647
+         self._v -= (math.e / 11)
       print(retVal)
       return retVal
 
@@ -34,6 +35,13 @@ class betterColors:
       Returns:
          str: A string representing the color in hexadecimal RGB format (e.g., "#FF0000").
       """
+      # Modify hue to give better color separation.
+      cosScalar = 0.025
+      h2pi = h * math.pi * 2.0
+      h += ((math.cos(h2pi * 6) - 1.0) * cosScalar)
+      while(h < 0):
+         h += 1.0
+
       # Convert HSV (0-1) to RGB (0-1)
       r, g, b = colorsys.hsv_to_rgb(h, s, v)
 
