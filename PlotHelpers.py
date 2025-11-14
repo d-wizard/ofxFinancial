@@ -42,21 +42,22 @@ class betterColors:
    def betterHue(self, hue: float):
       oneSixth = 1.0 / 6.0
 
+      # Determine which sixth of the hue we are in.
       whichSixth = int(hue / oneSixth)
       remainderInSixth = hue - float(whichSixth) * oneSixth
       direction = whichSixth & 1
 
-      scaledRemainder = remainderInSixth * 6.0
-      if direction:
-         # need to mirror
-         scaledRemainder = 1.0 - scaledRemainder # Mirror
-         scaledRemainder = self.quarterCircle(scaledRemainder)
-         scaledRemainder *= scaledRemainder
-         scaledRemainder = 1.0 - scaledRemainder # Mirror back to original
-      else:
-         scaledRemainder = self.quarterCircle(scaledRemainder)
-         scaledRemainder *= scaledRemainder
-      scaledRemainder *= oneSixth
+      # Setup for scaling
+      scaledRemainder = remainderInSixth * 6.0 # Convert from 0 to 1/6th to 0 to 1
+      scaledPower = 2.0 # 2 = square the value, 3 = cube the value, 0.5 = square root, etc
+
+      # Do the math to determine the scaling.
+      scaledRemainder = 1.0 - scaledRemainder if direction else scaledRemainder # Mirror on odd sixths
+      scaledRemainder = self.quarterCircle(scaledRemainder)
+      scaledRemainder = math.pow(scaledRemainder, scaledPower) # Use power to better scale
+      scaledRemainder = 1.0 - scaledRemainder if direction else scaledRemainder # Mirror back on odd sixths
+
+      scaledRemainder *= oneSixth # Scale back down to 1/6th
       
       return float(whichSixth)*oneSixth + scaledRemainder
 
