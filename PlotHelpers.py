@@ -3,6 +3,13 @@ import numpy as np
 import math
 import colorsys
 
+# Hue BMP Gen code
+try:
+   from PIL import Image
+except:
+   pass
+
+
 class betterColors:
    goldenAngle = 137.5 / 360 # normalize
 
@@ -12,7 +19,7 @@ class betterColors:
       self._v = v
 
    def get_next_color(self, ):
-      retVal = self.hsv_to_hex_rgb(self._h, self._s, self._v)
+      retVal = self.hsv_to_rgb_hex(self._h, self._s, self._v)
       self._h += self.goldenAngle
       self._s += (math.pi/6.0)
       self._v += (math.pi/15.0)
@@ -23,7 +30,51 @@ class betterColors:
       print(retVal)
       return retVal
 
-   def hsv_to_hex_rgb(self, h, s, v):
+   def quarterCircle(self, val: float):
+      # Bound
+      val = 1.0 if val > 1.0 else val
+      val = 0.0 if val < 0.0 else val
+      
+      # The equation for a quarter circle: y=(1 - (1-x)^2)^0.5
+      # http://www.wolframalpha.com/input/?i=y%3D%281+-+%281-x%29%5E2%29%5E0.5+from+x%3D0+to+1
+      return math.sqrt(1.0 - math.pow(1.0 - val, 2))
+
+   def betterHue(self, hue: float):
+      oneSixth = 1.0 / 6.0
+
+      whichSixth = int(hue / oneSixth)
+      remainderInSixth = hue - float(whichSixth) * oneSixth
+      direction = whichSixth & 1
+
+      scaledRemainder = remainderInSixth * 6.0
+      if direction:
+         # need to mirror
+         scaledRemainder = 1.0 - scaledRemainder # Mirror
+         scaledRemainder = self.quarterCircle(scaledRemainder)
+         scaledRemainder *= scaledRemainder
+         scaledRemainder = 1.0 - scaledRemainder # Mirror back to original
+      else:
+         scaledRemainder = self.quarterCircle(scaledRemainder)
+         scaledRemainder *= scaledRemainder
+      scaledRemainder *= oneSixth
+      
+      return float(whichSixth)*oneSixth + scaledRemainder
+
+
+   def hsv_to_rgb_bytes(self, h, s, v):
+
+      # Convert HSV (0-1) to RGB (0-1)
+      r, g, b = colorsys.hsv_to_rgb(h, s, v)
+
+      # Scale RGB values to 0-255 and convert to integers
+      r_int = int(r * 255)
+      g_int = int(g * 255)
+      b_int = int(b * 255)
+
+      return (r_int, g_int, b_int)
+
+
+   def hsv_to_rgb_hex(self, h, s, v):
       """
       Converts HSV values (0-1 range) to a hexadecimal RGB string (#RRGGBB).
 
@@ -35,12 +86,6 @@ class betterColors:
       Returns:
          str: A string representing the color in hexadecimal RGB format (e.g., "#FF0000").
       """
-      # Modify hue to give better color separation.
-      cosScalar = 0.025
-      h2pi = h * math.pi * 2.0
-      h += ((math.cos(h2pi * 6) - 1.0) * cosScalar)
-      while(h < 0):
-         h += 1.0
 
       # Convert HSV (0-1) to RGB (0-1)
       r, g, b = colorsys.hsv_to_rgb(h, s, v)
@@ -125,3 +170,25 @@ def showStackedBarPlot(dataDict: dict, barGroupLabels):
    plt.grid(axis='y')
    ax.format_coord = lambda x, y: '{:0.2f}'.format(y)
    plt.show()
+
+if __name__ == "__main__":
+   bc = betterColors()
+
+   # Define image dimensions
+   width = 512
+   height = 64
+
+   # Create a new image with RGB mode and specified dimensions
+   # The 'RGB' mode means 24-bit color (8 bits per channel for Red, Green, Blue)
+   image = Image.new('RGB', (width, height), color='white') # Start with a white background
+
+   # You can now manipulate pixels or draw on the image
+   # For example, draw a red square
+   for x in range(width):
+      for y in range(height):
+         image.putpixel((x, y), bc.hsv_to_rgb_bytes(bc.betterHue(float(x)/float(width)), 1, 1)) # Set pixel to red
+
+   # Save the image as a BMP file
+   image.save("my_image.bmp")
+
+   print("BMP image 'my_image.bmp' created successfully.")
