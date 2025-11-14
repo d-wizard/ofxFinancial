@@ -19,7 +19,7 @@ class betterColors:
       self._v = v
 
    def get_next_color(self, ):
-      retVal = self.hsv_to_rgb_hex(self._h, self._s, self._v)
+      retVal = self.hsv_to_rgb_hex(self._h, self._s, self._v, True)
       self._h += self.goldenAngle
       self._s += (math.pi/6.0)
       self._v += (math.pi/15.0)
@@ -75,7 +75,7 @@ class betterColors:
       return (r_int, g_int, b_int)
 
 
-   def hsv_to_rgb_hex(self, h, s, v):
+   def hsv_to_rgb_hex(self, h, s, v, applyBetterHue = False):
       """
       Converts HSV values (0-1 range) to a hexadecimal RGB string (#RRGGBB).
 
@@ -87,6 +87,9 @@ class betterColors:
       Returns:
          str: A string representing the color in hexadecimal RGB format (e.g., "#FF0000").
       """
+
+      if applyBetterHue:
+         h = self.betterHue(h)
 
       # Convert HSV (0-1) to RGB (0-1)
       r, g, b = colorsys.hsv_to_rgb(h, s, v)
