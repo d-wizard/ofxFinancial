@@ -105,6 +105,26 @@ def getSymbols(trades):
 
 ################################################################################
 
+def getProfit(trades, stockHistory):
+    nowStockValues = stockHistory[getNewestStockHistoryDate(stockHistory)]
+    totalSpent = 0
+    curValue = 0
+    for trade in trades:
+        tradeShares = float(trade["Shares"])
+        tradeCostPer = float(trade["Cost"])
+        tradeTotal = tradeShares * tradeCostPer
+        nowValuePer = float(nowStockValues[trade["Symbol"]])
+        nowValueTotal = tradeShares * nowValuePer
+
+        totalSpent += tradeTotal
+        curValue += nowValueTotal
+    
+    return [totalSpent, curValue]
+
+
+
+################################################################################
+
 # Main start
 if __name__== "__main__":
     parser = argparse.ArgumentParser()
@@ -113,15 +133,19 @@ if __name__== "__main__":
 
     # Parse the documents that contain transactions.
     with open(args.trades, 'r') as f:
+        # Get trade history from JSON file
         trades = json.load(f)
+
+        # Determine Stock Market symbols and the times to look up.
         startTime = determineOldestTradeTime(trades)
         startTimeStr = startTime.strftime("%Y-%m-%d")
         nowTimeStr = datetime.now().strftime("%Y-%m-%d")
         symbols = getSymbols(trades)
 
+        # Get the stock market history information.
         history = {}
         for symbol in symbols:
             getStockHistory(symbol, startTimeStr, nowTimeStr, history)
 
-        print(history[getNewestStockHistoryDate(history)])
+        print(getProfit(trades, history))
 
