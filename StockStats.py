@@ -121,6 +121,68 @@ def getProfit(trades, stockHistory):
     
     return [totalSpent, curValue]
 
+################################################################################
+
+def getProfitOverTime(trades, stockHistory):
+    for trade in trades:
+        tradeShares = float(trade["Shares"])
+        tradeCostPer = float(trade["Cost"])
+        tradeDate = tradeToDate(trade)
+        tradeSymbol = trade["Symbol"]
+        tradeTotal = tradeShares * tradeCostPer
+        trade["History"] = []
+        for stockDay in stockHistory:
+            if stockDay >= tradeDate:
+                dayValuePer = float(stockHistory[stockDay][tradeSymbol])
+                dayValueTotal = tradeShares * dayValuePer
+                dayProfit = dayValueTotal - tradeTotal
+
+                value = {}
+                value["Value"] = dayValueTotal
+                value["Profit"] = dayProfit
+                value["Date"] = stockDay
+                trade["History"].append(value)
+
+################################################################################
+
+def getProfitLists(trade):
+    days = []
+    profit = []
+    for dayInfo in trade["History"]:
+        days.append(dayInfo["Date"])
+        profit.append(dayInfo["Profit"])
+    return [days, profit]
+
+################################################################################
+
+def getAllTradeProfits(trades):
+    allDict = {}
+    for trade in trades:
+        days, profit = getProfitLists(trade)
+        for i in range(len(days)):
+            try:
+                allDict[days[i]] += profit[i]
+            except:
+                allDict[days[i]] = profit[i]
+    allDict = dict(sorted(allDict.items()))
+    return [list(allDict.keys()), list(allDict.values())]
+
+################################################################################
+
+def plotProfit(name: str, days, profit):
+    plt.figure(figsize=(12, 6))
+    plt.plot(days, profit, label=name, color='blue')
+    
+    plt.title(f"Profit")
+    plt.xlabel("Date")
+    plt.ylabel("Price (USD)")
+    plt.grid(True, linestyle='--', alpha=0.5)
+    plt.legend()
+    
+    plt.tight_layout()
+    plt.show()
+
+
 
 
 ################################################################################
@@ -147,5 +209,8 @@ if __name__== "__main__":
         for symbol in symbols:
             getStockHistory(symbol, startTimeStr, nowTimeStr, history)
 
-        print(getProfit(trades, history))
+        getProfitOverTime(trades, history)
+        days, profit = getAllTradeProfits(trades)
+        plotProfit("All", days, profit)
+        # print(trades[-1])
 
