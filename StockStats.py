@@ -1,6 +1,7 @@
 import os
 import json
 import argparse
+from datetime import datetime
 import yfinance as yf
 import matplotlib.pyplot as plt
 
@@ -67,12 +68,60 @@ def getStockHistory(ticker: str, start: str, end: str, history: dict):
 
 ################################################################################
 
+def getNewestStockHistoryDate(history: dict):
+    newestDate = None
+    for h in history:
+        if newestDate == None:
+            newestDate = h
+        elif newestDate < h:
+            newestDate = h
+    return newestDate
+
+################################################################################
+
+def tradeToDate(trade):
+    return datetime.strptime(trade['Date'], "%Y-%m-%d")
+
+################################################################################
+
+def determineOldestTradeTime(trades):
+    oldestTradeTime = None
+    for trade in trades:
+        tradeTimeStamp = tradeToDate(trade)
+        if oldestTradeTime == None:
+            oldestTradeTime = tradeTimeStamp
+        elif tradeTimeStamp < oldestTradeTime:
+            oldestTradeTime = tradeTimeStamp
+    return oldestTradeTime
+
+################################################################################
+
+def getSymbols(trades):
+    symbols = []
+    for trade in trades:
+        if trade["Symbol"] not in symbols:
+            symbols.append(trade["Symbol"])
+    return symbols
+
+################################################################################
+
 # Main start
 if __name__== "__main__":
-    history = {}
-    getStockHistory("AAPL", "2025-11-01", "2025-12-01", history)
-    getStockHistory("MSFT", "2025-10-01", "2025-12-01", history)
-    history = sorted(history.items())
-    print(history)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-t", "--trades", required=True, help="Json that defines the trades that were made.")
+    args = parser.parse_args()
 
-    plotStockHistory("MSFT", "2020-10-01", "2025-12-01")
+    # Parse the documents that contain transactions.
+    with open(args.trades, 'r') as f:
+        trades = json.load(f)
+        startTime = determineOldestTradeTime(trades)
+        startTimeStr = startTime.strftime("%Y-%m-%d")
+        nowTimeStr = datetime.now().strftime("%Y-%m-%d")
+        symbols = getSymbols(trades)
+
+        history = {}
+        for symbol in symbols:
+            getStockHistory(symbol, startTimeStr, nowTimeStr, history)
+
+        print(history[getNewestStockHistoryDate(history)])
+
