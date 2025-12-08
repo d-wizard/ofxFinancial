@@ -182,6 +182,53 @@ def plotProfit(name: str, days, profit):
     plt.tight_layout()
     plt.show()
 
+################################################################################
+
+def getValueLists(trade):
+    days = []
+    value = []
+    investment = []
+
+    for dayInfo in trade["History"]:
+        days.append(dayInfo["Date"])
+        value.append(dayInfo["Value"])
+        investment.append(trade["Total"])
+    return [days, value, investment]
+
+################################################################################
+
+def getAllTradeValues(trades):
+    allValuesDict = {}
+    allInvestmentsDict = {}
+    for trade in trades:
+        days, value, investment = getValueLists(trade)
+        for i in range(len(days)):
+            try:
+                allValuesDict[days[i]] += value[i]
+                allInvestmentsDict[days[i]] += investment[i]
+            except:
+                allValuesDict[days[i]] = value[i]
+                allInvestmentsDict[days[i]] = investment[i]
+    allValuesDict = dict(sorted(allValuesDict.items()))
+    allInvestmentsDict = dict(sorted(allInvestmentsDict.items()))
+    return [list(allValuesDict.keys()), list(allValuesDict.values()), list(allInvestmentsDict.values())]
+
+################################################################################
+
+def plotValues(name: str, days, value, investment):
+    plt.figure(figsize=(12, 6))
+    plt.plot(days, value, label="Value", color='blue')
+    plt.plot(days, investment, label="Principal", color='black')
+    
+    plt.title(f"Profit: {name}")
+    plt.xlabel("Date")
+    plt.ylabel("Price (USD)")
+    plt.grid(True, linestyle='--', alpha=0.5)
+    plt.legend()
+    
+    plt.tight_layout()
+    plt.show()
+
 
 
 
@@ -210,7 +257,12 @@ if __name__== "__main__":
             getStockHistory(symbol, startTimeStr, nowTimeStr, history)
 
         getProfitOverTime(trades, history)
-        days, profit = getAllTradeProfits(trades)
-        plotProfit("All", days, profit)
+        if False:
+            days, profit = getAllTradeProfits(trades)
+            plotProfit("All", days, profit)
+        else:
+            days, value, investment = getAllTradeValues(trades)
+            plotValues("All", days, value, investment)
+
         # print(trades[-1])
 
