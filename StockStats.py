@@ -105,6 +105,24 @@ def getSymbols(trades):
 
 ################################################################################
 
+def includeSymbols(trades, symbolsToInclude):
+    retVal = []
+    for trade in trades:
+        if trade["Symbol"] in symbolsToInclude:
+            retVal.append(trade)
+    return retVal
+
+################################################################################
+
+def excludeSymbols(trades, symbolsToExclude):
+    retVal = []
+    for trade in trades:
+        if trade["Symbol"] not in symbolsToExclude:
+            retVal.append(trade)
+    return retVal
+
+################################################################################
+
 def getProfit(trades, stockHistory):
     nowStockValues = stockHistory[getNewestStockHistoryDate(stockHistory)]
     totalSpent = 0
@@ -236,14 +254,26 @@ def plotValues(name: str, days, value, investment):
 
 # Main start
 if __name__== "__main__":
+    def list_of_strings(arg):
+        return arg.split(',')
+   
     parser = argparse.ArgumentParser()
     parser.add_argument("-t", "--trades", required=True, help="Json that defines the trades that were made.")
+    parser.add_argument('--include', default=[], type=list_of_strings, help="Symbols to include (separated by commas, without spaces)")
+    parser.add_argument('--exclude', default=[], type=list_of_strings, help="Symbols to exclude (separated by commas, without spaces)")
+    parser.add_argument("-p", '--profit', action='store_true', help='Profit Only Plot')
     args = parser.parse_args()
 
     # Parse the documents that contain transactions.
     with open(args.trades, 'r') as f:
         # Get trade history from JSON file
         trades = json.load(f)
+
+        # Filter by symbols
+        if args.include != []:
+            trades = includeSymbols(trades, args.include)
+        if args.exclude != []:
+            trades = excludeSymbols(trades, args.exclude)
 
         # Determine Stock Market symbols and the times to look up.
         startTime = determineOldestTradeTime(trades)
@@ -257,7 +287,7 @@ if __name__== "__main__":
             getStockHistory(symbol, startTimeStr, nowTimeStr, history)
 
         getProfitOverTime(trades, history)
-        if False:
+        if args.profit:
             days, profit = getAllTradeProfits(trades)
             plotProfit("All", days, profit)
         else:
