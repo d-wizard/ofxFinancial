@@ -245,6 +245,7 @@ def plotValues(name: str, days, value, investment):
     plt.legend()
     
     plt.tight_layout()
+    plt.ylim(ymin=0)  # All the values should be positive, make the scaling better.
     plt.show()
 
 
