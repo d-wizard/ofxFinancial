@@ -288,11 +288,12 @@ if __name__== "__main__":
             getStockHistory(symbol, startTimeStr, nowTimeStr, history)
 
         getProfitOverTime(trades, history)
+        days, value, investment = getAllTradeValues(trades)
+        print(f"Totals as of Today: Value = {value[-1]} | Profit = {value[-1] - investment[-1]} | Principal: {investment[-1]}")
         if args.profit:
             days, profit = getAllTradeProfits(trades)
             plotProfit("All", days, profit)
         else:
-            days, value, investment = getAllTradeValues(trades)
             plotValues("All", days, value, investment)
 
         # print(trades[-1])
