@@ -133,6 +133,9 @@ def getProfit(trades, stockHistory):
         tradeTotal = tradeShares * tradeCostPer
         nowValuePer = float(nowStockValues[trade["Symbol"]])
         nowValueTotal = tradeShares * nowValuePer
+        if trade["Trade"].lower() == "sell":
+            tradeTotal = -tradeTotal
+            nowValueTotal = -nowValueTotal
 
         totalSpent += tradeTotal
         curValue += nowValueTotal
@@ -143,6 +146,7 @@ def getProfit(trades, stockHistory):
 
 def getProfitOverTime(trades, stockHistory):
     for trade in trades:
+        isSell = True if trade["Trade"].lower() == "sell" else False
         tradeShares = float(trade["Shares"])
         tradeCostPer = float(trade["Cost"])
         tradeDate = tradeToDate(trade)
@@ -154,6 +158,10 @@ def getProfitOverTime(trades, stockHistory):
                 dayValuePer = float(stockHistory[stockDay][tradeSymbol])
                 dayValueTotal = tradeShares * dayValuePer
                 dayProfit = dayValueTotal - tradeTotal
+
+                if isSell:
+                    dayValueTotal = -dayValueTotal
+                    dayProfit = -dayProfit
 
                 value = {}
                 value["Value"] = dayValueTotal
@@ -210,7 +218,10 @@ def getValueLists(trade):
     for dayInfo in trade["History"]:
         days.append(dayInfo["Date"])
         value.append(dayInfo["Value"])
-        investment.append(trade["Total"])
+        tradeTotal = abs(float(trade["Total"]))
+        if trade["Trade"].lower() == "sell":
+            tradeTotal = -tradeTotal # Sells should always be negative
+        investment.append(tradeTotal)
     return [days, value, investment]
 
 ################################################################################
@@ -245,7 +256,8 @@ def plotValues(name: str, days, value, investment):
     plt.legend()
     
     plt.tight_layout()
-    plt.ylim(ymin=0)  # All the values should be positive, make the scaling better.
+    if min(value) > 0 and min(investment) > 0:
+        plt.ylim(ymin=0)  # All the values are positive, make the scaling better.
     plt.show()
 
 
